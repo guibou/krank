@@ -1,0 +1,55 @@
+version: 2
+
+jobs:
+  nix:
+    docker:
+      - image: nixos/nix:latest
+    working_directory: ~/krank
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - cci-nix-{{ checksum "nixpkgs.nix" }}-{{ checksum "default.nix" }}-{{ checksum "PyF.cabal" }}
+            - cci-nix-{{ checksum "nixpkgs.nix" }}-{{ checksum "default.nix" }}
+            - cci-nix-{{ checksum "nixpkgs.nix" }}
+      - run:
+          name: Prefetch
+          command: nix-shell --command true
+      - save_cache:
+          name: Cache Dependencies
+          key: cci-nix-{{ checksum "nixpkgs.nix" }}-{{ checksum "default.nix" }}-{{ checksum "PyF.cabal" }}
+          paths:
+            - "/nix/store"
+      - run:
+          name: Build
+          command: nix-build -A krank-sdist
+
+  stack:
+    docker:
+      - image: fpco/stack-build:lts
+    working_directory: ~/krank
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - cci-demo-haskell-v1-{{ checksum "stack.yaml" }}-{{ checksum "PyF.cabal" }}
+            - cci-demo-haskell-v1-{{ checksum "stack.yaml" }}
+      - run:
+          name: Build dependencies
+          command: stack test --only-dependencies
+      - save_cache:
+          name: Cache Dependencies
+          key: cci-demo-haskell-v1-{{ checksum "stack.yaml" }}-{{ checksum "PyF.cabal" }}
+          paths:
+            - "/root/.stack"
+            - ".stack-work"
+      - run:
+          name: Build
+          command: stack test
+
+workflows:
+  version: 2
+  nix_stack:
+    jobs:
+      - nix
+      - stack
