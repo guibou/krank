@@ -12,7 +12,7 @@ Should build the package.
 nix-shell
 ```
 
-Will drop you in a shell where you can `cabal new-build`, `cabal new-test`, ...
+Will drop you in a shell where you can `cabal v2-build`, `cabal v2-test`, ...
 
 # Build with stack
 
