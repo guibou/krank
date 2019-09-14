@@ -3,7 +3,7 @@ cabal-version:       >=1.10
 -- For further documentation, see http://haskell.org/cabal/users-guide/
 
 name:                krank
-version:             0.1.0.0
+version:             0.1.0
 -- synopsis:
 -- description:
 -- bug-reports:
