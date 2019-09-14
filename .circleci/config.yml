@@ -9,7 +9,7 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            - cci-nix-{{ checksum "nixpkgs.nix" }}-{{ checksum "default.nix" }}-{{ checksum "PyF.cabal" }}
+            - cci-nix-{{ checksum "nixpkgs.nix" }}-{{ checksum "default.nix" }}-{{ checksum "krank.cabal" }}
             - cci-nix-{{ checksum "nixpkgs.nix" }}-{{ checksum "default.nix" }}
             - cci-nix-{{ checksum "nixpkgs.nix" }}
       - run:
@@ -17,7 +17,7 @@ jobs:
           command: nix-shell --command true
       - save_cache:
           name: Cache Dependencies
-          key: cci-nix-{{ checksum "nixpkgs.nix" }}-{{ checksum "default.nix" }}-{{ checksum "PyF.cabal" }}
+          key: cci-nix-{{ checksum "nixpkgs.nix" }}-{{ checksum "default.nix" }}-{{ checksum "krank.cabal" }}
           paths:
             - "/nix/store"
       - run:
@@ -32,14 +32,14 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            - cci-demo-haskell-v1-{{ checksum "stack.yaml" }}-{{ checksum "PyF.cabal" }}
+            - cci-demo-haskell-v1-{{ checksum "stack.yaml" }}-{{ checksum "krank.cabal" }}
             - cci-demo-haskell-v1-{{ checksum "stack.yaml" }}
       - run:
           name: Build dependencies
           command: stack test --only-dependencies
       - save_cache:
           name: Cache Dependencies
-          key: cci-demo-haskell-v1-{{ checksum "stack.yaml" }}-{{ checksum "PyF.cabal" }}
+          key: cci-demo-haskell-v1-{{ checksum "stack.yaml" }}-{{ checksum "krank.cabal" }}
           paths:
             - "/root/.stack"
             - ".stack-work"
