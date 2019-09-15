@@ -2,11 +2,12 @@ import System.Environment (getArgs)
 import System.Exit (exitFailure)
 
 import Krank
+import Krank.Formatter
 
 main :: IO ()
 main = do
   filePath <- parseArgs
-  case filePath of Just f -> putStrLn . show $ processFile f
+  case filePath of Just f -> putStrLn . showViolations $ processFile f
                    Nothing -> printHelp >> exitFailure
 
 parseArgs :: IO (Maybe FilePath)
