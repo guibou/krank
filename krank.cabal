@@ -11,18 +11,19 @@ version:             0.1.0.0
 license-file:        LICENSE
 author:              Guillaume Bouchard
 maintainer:          guillaum.bouchard@gmail.com
-homepage: https://github.com/guibou/krank
+homepage:            https://github.com/guibou/krank
 -- copyright:
 -- category:
 build-type:          Simple
 extra-source-files:  CHANGELOG.md, README.md
 
 library
-  exposed-modules:
-     Krank
+  exposed-modules:     Krank
+                       Krank.Types
 
   build-depends:       base >= 4.9 && < 5.0
-  hs-source-dirs: src
+                       , text >= 1.2.3 && < 1.3
+  hs-source-dirs:      src
   ghc-options: -Wall
   default-language:    Haskell2010
 
@@ -39,5 +40,5 @@ test-suite krank-test
 executable krank
   main-is:             Main.hs
   build-depends:       base >=4.12 && <4.13
-  hs-source-dirs: app
+  hs-source-dirs:      app
   default-language:    Haskell2010
