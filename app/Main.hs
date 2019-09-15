@@ -1,13 +1,15 @@
 import System.Environment (getArgs)
 import System.Exit (exitFailure)
 
+import Data.Text (unpack)
+
 import Krank
 import Krank.Formatter
 
 main :: IO ()
 main = do
   filePath <- parseArgs
-  case filePath of Just f -> putStrLn . showViolations $ processFile f
+  case filePath of Just f -> putStrLn . unpack . showViolations $ processFile f
                    Nothing -> printHelp >> exitFailure
 
 parseArgs :: IO (Maybe FilePath)

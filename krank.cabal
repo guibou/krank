@@ -41,6 +41,7 @@ test-suite krank-test
 executable krank
   main-is:             Main.hs
   build-depends:       base >=4.12 && <4.13
+                       , text >= 1.2.3 && < 1.3
                        , krank
   hs-source-dirs:      app
   default-language:    Haskell2010

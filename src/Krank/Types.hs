@@ -1,5 +1,5 @@
 module Krank.Types (
-  Violation
+  Violation(..)
   ) where
 
 import Data.Text (Text)
