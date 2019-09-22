@@ -1,10 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes #-}
 
 module Krank.Formatter (
   showViolations
   ) where
 
-import Data.Text (Text, append, pack)
+import Data.Text (Text)
+import PyF (f)
 
 import Krank.Types
 
@@ -14,6 +16,7 @@ showViolations = foldMap showViolation
 
 showViolation :: Violation
               -> Text
-showViolation violation = "\n"
-  `append` "[" `append` pack (show (level violation)) `append` "]" `append` " " `append` message violation `append` "\n"
-  `append` "    in: " `append` snippet violation
+showViolation violation = [f|
+[{(show (level violation))}] {message violation}
+    in: {snippet violation}
+|]
