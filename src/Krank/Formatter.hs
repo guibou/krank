@@ -10,7 +10,7 @@ import Krank.Types
 
 showViolations :: [Violation]
                -> Text
-showViolations = foldl (\acc v -> acc `append` showViolation v) ""
+showViolations = foldMap showViolation
 
 showViolation :: Violation
               -> Text
