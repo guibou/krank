@@ -17,10 +17,11 @@ githubRE = do
   optional ("http" *> optional "s" *> "://")
   optional "www."
   "github.com/"
-  few anySym
+  few (psym ('/' /=))
   "/"
-  few anySym
+  few (psym ('/' /=))
   "/"
+  "issues/"
   issueNum <- few (psym isDigit)
   optional "/"
   return $ read issueNum
