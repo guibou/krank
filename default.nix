@@ -1,5 +1,7 @@
 { nixpkgs ? ./nixpkgs.nix }:
-with import nixpkgs {};
+with import nixpkgs {
+  config = { allowBroken = true; };
+};
 rec {
   krank = haskellPackages.developPackage {
     name = "krank";
