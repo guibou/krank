@@ -6,7 +6,7 @@ module Krank.Formatter (
   ) where
 
 import Data.Text (Text)
-import PyF (f)
+import PyF (fmt)
 
 import Krank.Types
 
@@ -16,7 +16,7 @@ showViolations = foldMap showViolation
 
 showViolation :: Violation
               -> Text
-showViolation violation = [f|
+showViolation violation = [fmt|
 [{(show (level violation))}] {message violation}
     in: {snippet violation}
 |]
