@@ -9,18 +9,17 @@ import Options.Applicative ((<**>))
 import Krank
 import Krank.Formatter
 
-data Sample = Sample {
+data KrankOpts = KrankOpts {
   codeFilePath :: FilePath
 }
 
 fileToParse :: Opt.Parser FilePath
 fileToParse = Opt.argument Opt.str (Opt.metavar "FILE")
 
-sample :: Opt.Parser Sample
-sample = Sample
-  <$> fileToParse
+sample :: Opt.Parser KrankOpts
+sample = KrankOpts <$> fileToParse
 
-opts :: Opt.ParserInfo Sample
+opts :: Opt.ParserInfo KrankOpts
 opts = Opt.info (sample <**> Opt.helper)
   ( Opt.fullDesc
   <> Opt.progDesc "Checks the comments in FILE"
