@@ -16,7 +16,7 @@ parseArgs :: IO (Maybe FilePath)
 parseArgs = do
   args <- getArgs
   case args of [a] -> pure $ Just a
-               _   -> pure $ Nothing
+               _   -> pure Nothing
 
 printHelp :: IO ()
 printHelp = do

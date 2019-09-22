@@ -4,8 +4,10 @@ module Krank.Types (
 
 import Data.Text (Text)
 
+data ViolationLevel = Info | Warning | Error deriving (Show)
+
 data Violation = Violation { checker :: Text
-                           , level :: Int
+                           , level :: ViolationLevel
                            , snippet :: Text
                            , message :: Text
                            } deriving (Show)
