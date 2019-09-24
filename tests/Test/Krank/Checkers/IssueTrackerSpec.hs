@@ -39,5 +39,11 @@ spec = do
       it "fails if github not in path" $ do
         "google.com/guibou/krank/issues/1" =~ githubRE `shouldBe` Nothing
 
-      it "fails if github not in path" $ do
+      it "fails if not a github issue" $ do
         "github.com/guibou/krank/branches/1" =~ githubRE `shouldBe` Nothing
+
+      it "fails on partial match" $ do
+        "github.com/guibou/krank/\n" =~ githubRE `shouldBe` Nothing
+
+      it "fails on partial match (just missing the issue number)" $ do
+        "github.com/guibou/krank/issues/\n" =~ githubRE `shouldBe` Nothing

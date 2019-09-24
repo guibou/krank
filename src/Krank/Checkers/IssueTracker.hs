@@ -22,7 +22,7 @@ githubRE = do
   few (psym ('/' /=))
   "/"
   "issues/"
-  issueNum <- few (psym isDigit)
+  issueNum <- some (psym isDigit)
   optional "/"
   return $ read issueNum
 
