@@ -8,7 +8,9 @@ module Krank.Checkers.IssueTracker (
 
 import Control.Applicative ((*>), optional)
 import Data.Char (isDigit)
-import Text.Regex.Applicative ((=~), RE(), anySym, few, psym)
+import Data.Maybe (fromMaybe)
+import System.IO (readFile)
+import Text.Regex.Applicative ((<|>), (=~), RE(), anySym, few, many, psym, some)
 
 import Krank.Types
 
@@ -28,5 +30,9 @@ githubRE = do
   return $ read issueNum
 
 check :: FilePath
-      -> [Violation]
-check file = []
+      -> IO [Int]
+check file = do
+  content <- readFile file
+  print content
+  let mMatches = content =~ many ((few anySym) *> githubRE <* (few anySym))
+  pure $ fromMaybe [] mMatches
