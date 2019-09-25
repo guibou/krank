@@ -25,8 +25,6 @@ githubRE = do
   "/"
   "issues/"
   issueNum <- some (psym isDigit)
-  optional "/"
-  " " <|> "\t" <|> "\n"
   return $ read issueNum
 
 check :: FilePath
