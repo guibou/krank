@@ -4,6 +4,7 @@
 module Krank.Checkers.IssueTracker (
   GitIssue(..)
   , check
+  , extractIssues
   , githubRE
   , gitlabRE
   , gitRepoRE
@@ -45,10 +46,17 @@ gitRepoRE host = do
   -- Note that read is safe because of the regex parsing
   return $ GitIssue repoOwner repoName (read issueNumStr)
 
+extractIssues :: String
+              -> [GitIssue]
+extractIssues toCheck =
+  concat matches
+    where
+      patterns = [githubRE, gitlabRE]
+      mMatches = (\x -> toCheck =~ many ((few anySym) *> x <* (few anySym))) <$> patterns
+      matches = fromMaybe [] <$> mMatches
+
 check :: FilePath
       -> IO [GitIssue]
 check file = do
   content <- readFile file
-  print content
-  let mMatches = content =~ many ((few anySym) *> githubRE <* (few anySym))
-  pure $ fromMaybe [] mMatches
+  pure $ extractIssues content
