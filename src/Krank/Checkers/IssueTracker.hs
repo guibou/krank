@@ -5,13 +5,15 @@ module Krank.Checkers.IssueTracker (
   GitIssue(..)
   , check
   , githubRE
+  , gitlabRE
+  , gitRepoRE
   ) where
 
 import Control.Applicative ((*>), optional)
 import Data.Char (isDigit)
 import Data.Maybe (fromMaybe)
 import System.IO (readFile)
-import Text.Regex.Applicative ((=~), RE(), anySym, few, many, psym, some)
+import Text.Regex.Applicative ((=~), RE(), anySym, few, many, psym, some, string)
 
 import Krank.Types
 
@@ -22,10 +24,18 @@ data GitIssue = GitIssue {
 } deriving (Eq, Show)
 
 githubRE :: RE Char GitIssue
-githubRE = do
+githubRE = gitRepoRE "github.com"
+
+gitlabRE :: RE Char GitIssue
+gitlabRE = gitRepoRE "gitlab.com"
+
+gitRepoRE :: String
+          -> RE Char GitIssue
+gitRepoRE host = do
   optional ("http" *> optional "s" *> "://")
   optional "www."
-  "github.com/"
+  string host
+  "/"
   repoOwner <- few (psym ('/' /=))
   "/"
   repoName <- few (psym ('/' /=))
