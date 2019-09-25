@@ -16,6 +16,7 @@ import Data.Maybe (fromMaybe)
 import System.IO (readFile)
 import Text.Regex.Applicative ((=~), RE(), anySym, few, many, psym, some, string)
 
+import Krank.Checkers.Common
 import Krank.Types
 
 data GitIssue = GitIssue {
@@ -52,7 +53,7 @@ extractIssues toCheck =
   concat matches
     where
       patterns = [githubRE, gitlabRE]
-      mMatches = (\x -> toCheck =~ many ((few anySym) *> x <* (few anySym))) <$> patterns
+      mMatches = (=~) toCheck . multiple <$> patterns
       matches = fromMaybe [] <$> mMatches
 
 check :: FilePath

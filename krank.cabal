@@ -19,6 +19,7 @@ extra-source-files:  CHANGELOG.md, README.md
 
 library
   exposed-modules:     Krank
+                       Krank.Checkers.Common
                        Krank.Checkers.IssueTracker
                        Krank.Formatter
                        Krank.Types
