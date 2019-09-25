@@ -39,6 +39,7 @@ test-suite krank-test
   build-tools:
   build-depends:       base
                        , hspec >= 2.7 && < 2.8
+                       , PyF >= 0.8.1.0 && < 0.9
                        , regex-applicative >= 0.3 && < 0.4
                        , krank
   ghc-options:         -Wall -threaded -rtsopts -with-rtsopts=-N

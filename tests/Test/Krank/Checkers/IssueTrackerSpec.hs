@@ -63,12 +63,24 @@ spec =
         let match = "github.com/guibou/krank/issues/" =~ gitRepoRE "github.com"
         match `shouldBe` Nothing
 
-    describe "#gitlabRE" $ do
+    describe "#gitlabRE" $
       it "handles full https url" $ do
         let match = "https://gitlab.com/gitlab-org/gitlab-foss/issues/67390" =~ gitlabRE
         match `shouldBe` (Just $ GitIssue "gitlab-org" "gitlab-foss" 67390)
 
-    describe "#githubRE" $ do
+    describe "#githubRE" $
       it "handles full https url" $ do
         let match = "https://github.com/guibou/krank/issues/2" =~ githubRE
         match `shouldBe` (Just $ GitIssue "guibou" "krank" 2)
+
+    describe "#extractIssues" $
+      it "handles both github and gitlab" $ do
+        let match = extractIssues [fmt|https://github.com/guibou/krank/issues/2
+        some text
+        https://gitlab.com/gitlab-org/gitlab-foss/issues/67390
+        and more github https://github.com/guibou/krank/issues/1
+        |]
+        match `shouldMatchList` [
+          GitIssue "guibou" "krank" 2
+          , GitIssue "gitlab-org" "gitlab-foss" 67390
+          , GitIssue "guibou" "krank" 1 ]
