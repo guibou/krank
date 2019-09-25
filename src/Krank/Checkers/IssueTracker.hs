@@ -2,7 +2,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Krank.Checkers.IssueTracker (
-  check
+  GitIssue(..)
+  , check
   , githubRE
   ) where
 
@@ -10,25 +11,32 @@ import Control.Applicative ((*>), optional)
 import Data.Char (isDigit)
 import Data.Maybe (fromMaybe)
 import System.IO (readFile)
-import Text.Regex.Applicative ((<|>), (=~), RE(), anySym, few, many, psym, some)
+import Text.Regex.Applicative ((=~), RE(), anySym, few, many, psym, some)
 
 import Krank.Types
 
-githubRE :: RE Char Int
+data GitIssue = GitIssue {
+  owner :: String,
+  repo :: String,
+  issueNum :: Int
+} deriving (Eq, Show)
+
+githubRE :: RE Char GitIssue
 githubRE = do
   optional ("http" *> optional "s" *> "://")
   optional "www."
   "github.com/"
-  few (psym ('/' /=))
+  repoOwner <- few (psym ('/' /=))
   "/"
-  few (psym ('/' /=))
+  repoName <- few (psym ('/' /=))
   "/"
   "issues/"
-  issueNum <- some (psym isDigit)
-  return $ read issueNum
+  issueNumStr <- some (psym isDigit)
+  -- Note that read is safe because of the regex parsing
+  return $ GitIssue repoOwner repoName (read issueNumStr)
 
 check :: FilePath
-      -> IO [Int]
+      -> IO [GitIssue]
 check file = do
   content <- readFile file
   print content
