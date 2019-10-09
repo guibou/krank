@@ -11,6 +11,8 @@ module Krank.Checkers.IssueTracker (
   , gitlabRE
   , gitRepoRE
 
+                                   , IssueStatus(..)
+                                   , parseStatus
   ) where
 
 import Control.Applicative ((*>), optional)
@@ -81,9 +83,9 @@ extractIssues toCheck =
 -- Supports only github for the moment
 issueUrl :: GitIssue
          -> Req.Url 'Req.Https
-issueUrl issue
-  | server issue == Github = Req.https "api.github.com" Req./: "repos" Req./: owner issue Req./: repo issue Req./: "issues" Req./: (pack . show $ issueNum issue)
-  | server issue == Gitlab = Req.https "google.com"
+issueUrl issue = case server issue of
+  Github -> Req.https "api.github.com" Req./: "repos" Req./: owner issue Req./: repo issue Req./: "issues" Req./: (pack . show $ issueNum issue)
+  Gitlab -> Req.https "google.com"
 
 restIssue :: Req.Url 'Req.Https
             -> IO Value
@@ -93,7 +95,7 @@ restIssue url = Req.runReq Req.defaultHttpConfig $ do
 
 getStatus :: Value
           -> AesonT.Result String
-getStatus (AesonT.Object o) = AesonT.parse (\x -> x .: "state") o
+getStatus (AesonT.Object o) = AesonT.parse (.: "state") o
 getStatus _ = AesonT.Error "invalid JSON"
 
 parseStatus :: AesonT.Result String
