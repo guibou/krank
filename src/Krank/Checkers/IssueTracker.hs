@@ -5,14 +5,12 @@
 
 module Krank.Checkers.IssueTracker (
   GitIssue(..)
+  , GitServer(..)
   , check
   , extractIssues
   , githubRE
   , gitlabRE
   , gitRepoRE
-
-                                   , IssueStatus(..)
-                                   , parseStatus
   ) where
 
 import Control.Applicative ((*>), optional)
