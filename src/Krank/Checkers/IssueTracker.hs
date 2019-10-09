@@ -1,6 +1,7 @@
 {-# LANGUAGE ApplicativeDo #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes #-}
 
 module Krank.Checkers.IssueTracker (
   GitIssue(..)
@@ -19,6 +20,7 @@ import Data.Char (isDigit)
 import Data.Maybe (fromMaybe)
 import Data.Text (Text, pack)
 import qualified Network.HTTP.Req as Req
+import PyF (fmt)
 import System.IO (readFile)
 import Text.Regex.Applicative ((=~), RE(), few, psym, some, string)
 
@@ -27,10 +29,6 @@ import Krank.Checkers.Common
 data GitServer = Github | Gitlab deriving (Eq, Show)
 
 data IssueStatus = Open | Closed deriving (Eq, Show)
--- TODO - can it be done with readPrec?
-instance Read IssueStatus where
-  readsPrec _ "closed" = [(Closed, "")]
-  readsPrec _ _ = [(Open, "")]
 
 data GitIssue = GitIssue {
   server :: GitServer,
@@ -100,7 +98,10 @@ getStatus _ = AesonT.Error "invalid JSON"
 
 parseStatus :: AesonT.Result String
             -> Either String IssueStatus
-parseStatus (AesonT.Success status) = Right $ read status
+parseStatus (AesonT.Success status) = case status of
+  "closed" -> Right Closed
+  "open"   -> Right Open
+  _        -> Left [fmt|Could not parse status '{status}'|]
 parseStatus (AesonT.Error err) = Left err
 
 check :: FilePath
