@@ -2,6 +2,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Krank.Checkers.IssueTracker (
   GitIssue(..)
@@ -15,6 +16,7 @@ module Krank.Checkers.IssueTracker (
   ) where
 
 import Control.Applicative ((*>), optional)
+import Control.Exception (catch)
 import Data.Aeson (Value, (.:))
 import qualified Data.Aeson.Types as AesonT
 import Data.Char (isDigit)
@@ -87,11 +89,20 @@ issueUrl issue = case server issue of
   Github -> Req.https "api.github.com" Req./: "repos" Req./: owner issue Req./: repo issue Req./: "issues" Req./: (pack . show $ issueNum issue)
   Gitlab -> Req.https "google.com"
 
-restIssue :: Req.Url 'Req.Https
-            -> IO Value
-restIssue url = Req.runReq Req.defaultHttpConfig $ do
+-- try Issue can fail, on non-2xx HTTP response
+tryRestIssue :: Req.Url 'Req.Https
+             -> IO Value
+tryRestIssue url = Req.runReq Req.defaultHttpConfig $ do
   r <- Req.req Req.GET url Req.NoReqBody Req.jsonResponse (Req.header "User-Agent" "krank")
   pure $ Req.responseBody r
+
+httpExcHandler :: Req.HttpException
+               -> IO Value
+httpExcHandler _ = pure AesonT.Null
+
+restIssue :: Req.Url 'Req.Https
+             -> IO Value
+restIssue url = catch (tryRestIssue url) httpExcHandler
 
 getStatus :: Value
           -> AesonT.Result String
