@@ -1,5 +1,6 @@
 {-# LANGUAGE ApplicativeDo #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -96,33 +97,43 @@ tryRestIssue url = Req.runReq Req.defaultHttpConfig $ do
   r <- Req.req Req.GET url Req.NoReqBody Req.jsonResponse (Req.header "User-Agent" "krank")
   pure $ Req.responseBody r
 
-httpExcHandler :: Req.HttpException
+httpExcHandler :: Req.Url 'Req.Https
+               -> Req.HttpException
                -> IO Value
-httpExcHandler _ = pure AesonT.Null
+httpExcHandler url _ = pure . AesonT.object $ [("error", AesonT.String . pack . show $ url)]
 
 restIssue :: Req.Url 'Req.Https
              -> IO Value
-restIssue url = catch (tryRestIssue url) httpExcHandler
+restIssue url = catch (tryRestIssue url) (httpExcHandler url)
 
-getStatus :: Value
-          -> AesonT.Result String
-getStatus (AesonT.Object o) = AesonT.parse (.: "state") o
-getStatus _ = AesonT.Error "invalid JSON"
-
-parseStatus :: AesonT.Result String
+statusParser :: Value
             -> Either Text IssueStatus
-parseStatus (AesonT.Success status) = case status of
-  "closed" -> Right Closed
-  "open"   -> Right Open
-  _        -> Left [fmt|Could not parse status '{status}'|]
-parseStatus (AesonT.Error err) = Left (pack err)
+statusParser (AesonT.Object o) = do
+  let state :: AesonT.Result String = AesonT.parse (.: "state") o
+  readState state
+    where
+      readState (AesonT.Success status) = case status of
+        "closed" -> Right Closed
+        "open"   -> Right Open
+        _        -> Left [fmt|Could not parse status '{status}'|]
+      readState (AesonT.Error _) = Left $ errorParser o
+statusParser _ = Left "invalid JSON"
+
+errorParser :: AesonT.Object
+            -> Text
+errorParser o = do
+  let err = AesonT.parse (.: "error") o
+  readErr err
+    where
+      readErr (AesonT.Success errText) = pack errText
+      readErr (AesonT.Error _) = "invalid JSON"
 
 gitIssuesWithStatus :: [GitIssue]
                     -> IO [Either Text GitIssueWithStatus]
 gitIssuesWithStatus issues = do
   let urls = issueUrl <$> issues
   statuses <- mapM restIssue urls
-  pure $ zipWith f issues (fmap (parseStatus . getStatus) statuses)
+  pure $ zipWith f issues (fmap statusParser statuses)
     where
       f _ (Left err) = Left err
       f issue (Right is) = Right $ GitIssueWithStatus issue is
@@ -157,7 +168,7 @@ checkText t = do
   issuesWithStatus <- gitIssuesWithStatus issues
   pure $ fmap f issuesWithStatus
     where
-      f (Left err) = Violation issueTrackerChecker Warning "Check error" err
+      f (Left err) = Violation issueTrackerChecker Warning "Url could not be reached" err
       f (Right issue) = Violation issueTrackerChecker (issueToLevel issue) (issueToSnippet issue) (issueToMessage issue)
 
 checkFile :: FilePath
