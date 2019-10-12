@@ -6,7 +6,8 @@
 module Krank.Checkers.IssueTracker (
   GitIssue(..)
   , GitServer(..)
-  , check
+  , checkFile
+  , checkText
   , extractIssues
   , githubRE
   , gitlabRE
@@ -25,6 +26,7 @@ import System.IO (readFile)
 import Text.Regex.Applicative ((=~), RE(), few, psym, some, string)
 
 import Krank.Checkers.Common
+import Krank.Types
 
 data GitServer = Github | Gitlab deriving (Eq, Show)
 
@@ -97,21 +99,58 @@ getStatus (AesonT.Object o) = AesonT.parse (.: "state") o
 getStatus _ = AesonT.Error "invalid JSON"
 
 parseStatus :: AesonT.Result String
-            -> Either String IssueStatus
+            -> Either Text IssueStatus
 parseStatus (AesonT.Success status) = case status of
   "closed" -> Right Closed
   "open"   -> Right Open
   _        -> Left [fmt|Could not parse status '{status}'|]
-parseStatus (AesonT.Error err) = Left err
+parseStatus (AesonT.Error err) = Left (pack err)
 
-check :: FilePath
-      -> IO [Either String GitIssueWithStatus]
-check file = do
-  content <- readFile file
-  let issues = extractIssues content
+gitIssuesWithStatus :: [GitIssue]
+                    -> IO [Either Text GitIssueWithStatus]
+gitIssuesWithStatus issues = do
   let urls = issueUrl <$> issues
   statuses <- mapM restIssue urls
   pure $ zipWith f issues (fmap (parseStatus . getStatus) statuses)
     where
       f _ (Left err) = Left err
       f issue (Right is) = Right $ GitIssueWithStatus issue is
+
+issueTrackerChecker :: Text
+issueTrackerChecker = "GIT Issue Tracker"
+
+issueToLevel :: GitIssueWithStatus
+             -> ViolationLevel
+issueToLevel i = case issueStatus i of
+  Open   -> Info
+  Closed -> Error
+
+issueToSnippet :: GitIssueWithStatus
+               -> Text
+issueToSnippet i = [fmt|{owner issue}/{repo issue}|]
+  where
+    issue = gitIssue i
+
+issueToMessage :: GitIssueWithStatus
+               -> Text
+issueToMessage i = case issueStatus i of
+  Open   -> [fmt|issue #{issueNum issue} still Open|]
+  Closed -> [fmt|issue #{issueNum issue} is now Closed|]
+  where
+    issue = gitIssue i
+
+checkText :: String
+          -> IO [Violation]
+checkText t = do
+  let issues = extractIssues t
+  issuesWithStatus <- gitIssuesWithStatus issues
+  pure $ fmap f issuesWithStatus
+    where
+      f (Left err) = Violation issueTrackerChecker Warning "Check error" err
+      f (Right issue) = Violation issueTrackerChecker (issueToLevel issue) (issueToSnippet issue) (issueToMessage issue)
+
+checkFile :: FilePath
+      -> IO [Violation]
+checkFile file = do
+  content <- readFile file
+  checkText content
