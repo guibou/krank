@@ -28,4 +28,5 @@ opts = Opt.info (sample <**> Opt.helper)
 main :: IO ()
 main = do
   options <- Opt.execParser opts
-  putStrLn . unpack . showViolations . processFile . codeFilePath $ options
+  violations <- processFile . codeFilePath $ options
+  putStrLn . unpack . showViolations $ violations
