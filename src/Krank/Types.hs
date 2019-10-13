@@ -5,6 +5,7 @@ module Krank.Types (
   ) where
 
 import Data.Text (Text)
+import Text.Megaparsec (SourcePos)
 
 newtype GithubKey = GithubKey String
 
@@ -14,4 +15,5 @@ data Violation = Violation { checker :: Text
                            , level :: ViolationLevel
                            , snippet :: Text
                            , message :: Text
+                           , location :: SourcePos
                            } deriving (Show)

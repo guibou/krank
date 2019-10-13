@@ -4,6 +4,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE DuplicateRecordFields #-}
 
 module Krank.Checkers.IssueTracker (
   GitIssue(..)
@@ -159,13 +160,13 @@ errorParser o = do
 
 gitIssuesWithStatus :: [Localized GitIssue]
                     -> Maybe GithubKey
-                    -> IO [Either Text GitIssueWithStatus]
+                    -> IO [Either (Text, Localized GitIssue) GitIssueWithStatus]
 gitIssuesWithStatus issues mGithubKey = do
   let urls = issueUrl . unLocalized <$> issues
   statuses <- mapM (restIssue mGithubKey) urls
   pure $ zipWith f issues (fmap statusParser statuses)
     where
-      f _ (Left err) = Left err
+      f issue (Left err) = Left (err, issue)
       f issue (Right is) = Right $ GitIssueWithStatus issue is
 
 issueTrackerChecker :: Text
@@ -200,5 +201,5 @@ checkText path t mGithubKey = do
   issuesWithStatus <- gitIssuesWithStatus issues mGithubKey
   pure $ fmap f issuesWithStatus
     where
-      f (Left err) = Violation issueTrackerChecker Warning "Url could not be reached" err
-      f (Right issue) = Violation issueTrackerChecker (issueToLevel issue) (issueToSnippet issue) (issueToMessage issue)
+      f (Left (err, issue)) = Violation issueTrackerChecker Warning "Url could not be reached" err (location (issue :: Localized GitIssue))
+      f (Right issue) = Violation issueTrackerChecker (issueToLevel issue) (issueToSnippet issue) (issueToMessage issue) (location ((gitIssue issue) :: Localized GitIssue))
