@@ -48,5 +48,5 @@ main :: IO ()
 main = do
   options <- Opt.execParser opts
   (flip mapM_) (codeFilePaths options) $ \path -> do
-    (processFile path (githubKey options) >>= putStrLn . unpack . showViolations)
+    (processFile path (githubKey options) >>= putStr . unpack . showViolations)
     `catchAnyDeep` (\(SomeException e) -> hPutStrLn stderr [fmt|Error when processing {path}: {show e}|])
