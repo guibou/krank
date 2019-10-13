@@ -7,9 +7,14 @@ module Test.Krank.Checkers.IssueTrackerSpec (
 
 import PyF (fmt)
 import Test.Hspec
-import Text.Regex.Applicative ((=~))
 
 import Krank.Checkers.IssueTracker
+import Text.Megaparsec (parseMaybe, Parsec)
+import Data.Void
+
+-- | Alias for fast parsing
+(=~) :: String -> Parsec Void String GitIssue -> Maybe GitIssue
+url =~ parser = parseMaybe parser url
 
 spec :: Spec
 spec =
@@ -71,7 +76,7 @@ spec =
 
     describe "#extractIssues" $
       it "handles both github and gitlab" $ do
-        let match = extractIssues [fmt|https://github.com/guibou/krank/issues/2
+        let match = extractIssues "localFile" [fmt|https://github.com/guibou/krank/issues/2
         some text
         https://gitlab.com/gitlab-org/gitlab-foss/issues/67390
         and more github https://github.com/guibou/krank/issues/1

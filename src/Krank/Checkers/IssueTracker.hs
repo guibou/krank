@@ -21,13 +21,16 @@ import Data.Aeson (Value, (.:))
 import qualified Data.Aeson.Types as AesonT
 import qualified Data.ByteString.UTF8 as BSU
 import Data.Char (isDigit)
-import Data.Maybe (fromMaybe)
 import Data.Text (Text, pack)
 import qualified Network.HTTP.Req as Req
 import PyF (fmt)
-import Text.Regex.Applicative ((=~), RE(), few, psym, some, string)
 
-import Krank.Checkers.Common
+import Replace.Megaparsec
+import Text.Megaparsec hiding (token)
+import Text.Megaparsec.Char
+import Data.Void
+import Data.Either (rights)
+
 import Krank.Types
 
 data GitServer = Github | Gitlab deriving (Eq, Show)
@@ -51,36 +54,42 @@ serverDomain :: GitServer
 serverDomain Github = "github.com"
 serverDomain Gitlab = "gitlab.com"
 
-githubRE :: RE Char GitIssue
+type Parser t = Parsec Void String t
+
+githubRE :: Parser GitIssue
 githubRE = gitRepoRE Github
 
-gitlabRE :: RE Char GitIssue
+gitlabRE :: Parser GitIssue
 gitlabRE = gitRepoRE Gitlab
 
 gitRepoRE :: GitServer
-          -> RE Char GitIssue
+          -> Parser GitIssue
 gitRepoRE gitServer = do
   optional ("http" *> optional "s" *> "://")
   optional "www."
   string (serverDomain gitServer)
   "/"
-  repoOwner <- few (psym ('/' /=))
+  repoOwner <- some (satisfy ('/'/=))
   "/"
-  repoName <- few (psym ('/' /=))
+  repoName <- some (satisfy ('/'/=))
   "/"
   "issues/"
-  issueNumStr <- some (psym isDigit)
+  issueNumStr <- some (satisfy isDigit)
   -- Note that read is safe because of the regex parsing
   return $ GitIssue gitServer (pack repoOwner) (pack repoName) (read issueNumStr)
 
-extractIssues :: String
-              -> [GitIssue]
-extractIssues toCheck =
-  concat matches
-    where
-      patterns = [githubRE, gitlabRE]
-      mMatches = (=~) toCheck . multiple <$> patterns
-      matches = fromMaybe [] <$> mMatches
+extractIssues
+  :: FilePath
+  -> String
+  -> [GitIssue]
+extractIssues filePath toCheck = case parse (findAllCap patterns) filePath toCheck of
+  Left _ -> []
+  Right res -> map snd $ rights res
+  where
+    patterns = choice [
+      githubRE,
+      gitlabRE
+      ]
 
 -- Supports only github for the moment
 issueUrl :: GitIssue
@@ -171,11 +180,12 @@ issueToMessage i = case issueStatus i of
   where
     issue = gitIssue i
 
-checkText :: String
+checkText :: FilePath
+          -> String
           -> Maybe GithubKey
           -> IO [Violation]
-checkText t mGithubKey = do
-  let issues = extractIssues t
+checkText path t mGithubKey = do
+  let issues = extractIssues path t
   issuesWithStatus <- gitIssuesWithStatus issues mGithubKey
   pure $ fmap f issuesWithStatus
     where
