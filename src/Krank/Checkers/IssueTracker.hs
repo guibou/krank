@@ -8,6 +8,7 @@
 module Krank.Checkers.IssueTracker (
   GitIssue(..)
   , GitServer(..)
+  , Localized(..)
   , checkText
   , extractIssues
   , githubRE
@@ -37,6 +38,16 @@ data GitServer = Github | Gitlab deriving (Eq, Show)
 
 data IssueStatus = Open | Closed deriving (Eq, Show)
 
+-- | Represents a localized chunk of information
+-- in a file
+data Localized t = Localized
+  { location :: SourcePos
+  , unLocalized :: t
+  } deriving (Show, Eq)
+
+localized :: Parser t -> Parser (Localized t)
+localized p = Localized <$> getSourcePos <*> p
+
 data GitIssue = GitIssue {
   server :: GitServer,
   owner :: Text,
@@ -45,7 +56,7 @@ data GitIssue = GitIssue {
 } deriving (Eq, Show)
 
 data GitIssueWithStatus = GitIssueWithStatus {
-  gitIssue :: GitIssue,
+  gitIssue :: Localized GitIssue,
   issueStatus :: IssueStatus
 } deriving (Eq, Show)
 
@@ -81,12 +92,12 @@ gitRepoRE gitServer = do
 extractIssues
   :: FilePath
   -> String
-  -> [GitIssue]
+  -> [Localized GitIssue]
 extractIssues filePath toCheck = case parse (findAllCap patterns) filePath toCheck of
   Left _ -> []
   Right res -> map snd $ rights res
   where
-    patterns = choice [
+    patterns = localized $ choice [
       githubRE,
       gitlabRE
       ]
@@ -146,11 +157,11 @@ errorParser o = do
       readErr (AesonT.Success errText) = pack errText
       readErr (AesonT.Error _) = "invalid JSON"
 
-gitIssuesWithStatus :: [GitIssue]
+gitIssuesWithStatus :: [Localized GitIssue]
                     -> Maybe GithubKey
                     -> IO [Either Text GitIssueWithStatus]
 gitIssuesWithStatus issues mGithubKey = do
-  let urls = issueUrl <$> issues
+  let urls = issueUrl . unLocalized <$> issues
   statuses <- mapM (restIssue mGithubKey) urls
   pure $ zipWith f issues (fmap statusParser statuses)
     where
@@ -170,7 +181,7 @@ issueToSnippet :: GitIssueWithStatus
                -> Text
 issueToSnippet i = [fmt|{owner issue}/{repo issue}|]
   where
-    issue = gitIssue i
+    issue = unLocalized $ gitIssue i
 
 issueToMessage :: GitIssueWithStatus
                -> Text
@@ -178,7 +189,7 @@ issueToMessage i = case issueStatus i of
   Open   -> [fmt|issue #{issueNum issue} still Open|]
   Closed -> [fmt|issue #{issueNum issue} is now Closed|]
   where
-    issue = gitIssue i
+    issue = unLocalized $ gitIssue i
 
 checkText :: FilePath
           -> String

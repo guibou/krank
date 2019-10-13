@@ -11,6 +11,7 @@ import Test.Hspec
 import Krank.Checkers.IssueTracker
 import Text.Megaparsec (parseMaybe, Parsec)
 import Data.Void
+import Text.Megaparsec.Pos (SourcePos(..), mkPos)
 
 -- | Alias for fast parsing
 (=~) :: String -> Parsec Void String GitIssue -> Maybe GitIssue
@@ -82,6 +83,6 @@ spec =
         and more github https://github.com/guibou/krank/issues/1
         |]
         match `shouldMatchList` [
-          GitIssue Github "guibou" "krank" 2
-          , GitIssue Gitlab "gitlab-org" "gitlab-foss" 67390
-          , GitIssue Github "guibou" "krank" 1 ]
+          Localized (SourcePos "localFile" (mkPos 1) (mkPos 1)) $ GitIssue Github "guibou" "krank" 2
+          , Localized (SourcePos "localFile" (mkPos 3) (mkPos 17)) $ GitIssue Gitlab "gitlab-org" "gitlab-foss" 67390
+          , Localized (SourcePos "localFile" (mkPos 4) (mkPos 25)) $ GitIssue Github "guibou" "krank" 1 ]
