@@ -20,6 +20,7 @@ import Control.Applicative ((*>), optional)
 import Control.Exception (catch)
 import Data.Aeson (Value, (.:))
 import qualified Data.Aeson.Types as AesonT
+import qualified Data.ByteString.UTF8 as BSU
 import Data.Char (isDigit)
 import Data.Maybe (fromMaybe)
 import Data.Text (Text, pack)
@@ -92,19 +93,29 @@ issueUrl issue = case server issue of
 
 -- try Issue can fail, on non-2xx HTTP response
 tryRestIssue :: Req.Url 'Req.Https
+             -> Maybe String
              -> IO Value
-tryRestIssue url = Req.runReq Req.defaultHttpConfig $ do
-  r <- Req.req Req.GET url Req.NoReqBody Req.jsonResponse (Req.header "User-Agent" "krank")
-  pure $ Req.responseBody r
+tryRestIssue url mGithubKey = do
+  Req.runReq Req.defaultHttpConfig $ do
+    r <- Req.req Req.GET url Req.NoReqBody Req.jsonResponse (
+      Req.header "User-Agent" "krank"
+      <> authHeaders)
+    pure $ Req.responseBody r
+
+  where
+    authHeaders = case mGithubKey of
+      Just token -> Req.oAuth2Token (BSU.fromString token)
+      Nothing -> mempty
 
 httpExcHandler :: Req.Url 'Req.Https
                -> Req.HttpException
                -> IO Value
 httpExcHandler url _ = pure . AesonT.object $ [("error", AesonT.String . pack . show $ url)]
 
-restIssue :: Req.Url 'Req.Https
+restIssue :: Maybe String
+             -> Req.Url 'Req.Https
              -> IO Value
-restIssue url = catch (tryRestIssue url) (httpExcHandler url)
+restIssue mGithubKey url = catch (tryRestIssue url mGithubKey) (httpExcHandler url)
 
 statusParser :: Value
             -> Either Text IssueStatus
@@ -129,10 +140,11 @@ errorParser o = do
       readErr (AesonT.Error _) = "invalid JSON"
 
 gitIssuesWithStatus :: [GitIssue]
+                    -> Maybe String
                     -> IO [Either Text GitIssueWithStatus]
-gitIssuesWithStatus issues = do
+gitIssuesWithStatus issues mGithubKey = do
   let urls = issueUrl <$> issues
-  statuses <- mapM restIssue urls
+  statuses <- mapM (restIssue mGithubKey) urls
   pure $ zipWith f issues (fmap statusParser statuses)
     where
       f _ (Left err) = Left err
@@ -162,10 +174,11 @@ issueToMessage i = case issueStatus i of
     issue = gitIssue i
 
 checkText :: String
+          -> Maybe String
           -> IO [Violation]
-checkText t = do
+checkText t mGithubKey = do
   let issues = extractIssues t
-  issuesWithStatus <- gitIssuesWithStatus issues
+  issuesWithStatus <- gitIssuesWithStatus issues mGithubKey
   pure $ fmap f issuesWithStatus
     where
       f (Left err) = Violation issueTrackerChecker Warning "Url could not be reached" err
@@ -175,4 +188,4 @@ checkFile :: FilePath
       -> IO [Violation]
 checkFile file = do
   content <- readFile file
-  checkText content
+  checkText content Nothing

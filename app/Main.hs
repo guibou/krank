@@ -44,7 +44,6 @@ opts = Opt.info (optionsParser <**> Opt.helper)
 main :: IO ()
 main = do
   options <- Opt.execParser opts
-  putStrLn $ show (githubKey options)
   (flip mapM_) (codeFilePaths options) $ \path -> do
-    (processFile path >>= putStrLn . unpack . showViolations)
+    (processFile path (githubKey options) >>= putStrLn . unpack . showViolations)
     `catchAnyDeep` (\(SomeException e) -> hPutStrLn stderr [fmt|Error when processing {path}: {show e}|])
