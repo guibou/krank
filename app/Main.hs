@@ -30,13 +30,13 @@ githubKeyToParse = optional $ Opt.strOption $
   <> Opt.metavar "DEVELOPER_KEY"
   <> Opt.help "A github developer key to allow for more API calls"
 
-sample :: Opt.Parser KrankOpts
-sample = KrankOpts
+optionsParser :: Opt.Parser KrankOpts
+optionsParser = KrankOpts
   <$> filesToParse
   <*> githubKeyToParse
 
 opts :: Opt.ParserInfo KrankOpts
-opts = Opt.info (sample <**> Opt.helper)
+opts = Opt.info (optionsParser <**> Opt.helper)
   ( Opt.fullDesc
   <> Opt.progDesc "Checks the comments in FILES"
   <> Opt.header "krank - a comment linter / analytics tool" )
