@@ -93,9 +93,9 @@ issueUrl issue = case server issue of
 
 -- try Issue can fail, on non-2xx HTTP response
 tryRestIssue :: Req.Url 'Req.Https
-             -> Maybe String
+             -> GithubKey
              -> IO Value
-tryRestIssue url mGithubKey = do
+tryRestIssue url (GithubKey mGithubKey) =
   Req.runReq Req.defaultHttpConfig $ do
     r <- Req.req Req.GET url Req.NoReqBody Req.jsonResponse (
       Req.header "User-Agent" "krank"
@@ -112,7 +112,7 @@ httpExcHandler :: Req.Url 'Req.Https
                -> IO Value
 httpExcHandler url _ = pure . AesonT.object $ [("error", AesonT.String . pack . show $ url)]
 
-restIssue :: Maybe String
+restIssue :: GithubKey
              -> Req.Url 'Req.Https
              -> IO Value
 restIssue mGithubKey url = catch (tryRestIssue url mGithubKey) (httpExcHandler url)
@@ -140,7 +140,7 @@ errorParser o = do
       readErr (AesonT.Error _) = "invalid JSON"
 
 gitIssuesWithStatus :: [GitIssue]
-                    -> Maybe String
+                    -> GithubKey
                     -> IO [Either Text GitIssueWithStatus]
 gitIssuesWithStatus issues mGithubKey = do
   let urls = issueUrl <$> issues
@@ -174,7 +174,7 @@ issueToMessage i = case issueStatus i of
     issue = gitIssue i
 
 checkText :: String
-          -> Maybe String
+          -> GithubKey
           -> IO [Violation]
 checkText t mGithubKey = do
   let issues = extractIssues t
@@ -188,4 +188,4 @@ checkFile :: FilePath
       -> IO [Violation]
 checkFile file = do
   content <- readFile file
-  checkText content Nothing
+  checkText content (GithubKey Nothing)
