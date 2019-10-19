@@ -4,10 +4,10 @@ module Krank (
 
 import qualified Krank.Checkers.IssueTracker as IT
 import Krank.Types
+import Control.Monad.Reader
 
 processFile :: FilePath      -- ^ the file to analyze
-            -> Maybe GithubKey   -- ^ github developer key to circumvent API rate limit
-            -> IO [Violation]
-processFile filePath mGithubKey = do
-  content <- readFile filePath
-  IT.checkText filePath content mGithubKey
+            -> ReaderT KrankConfig IO [Violation]
+processFile filePath = do
+  content <- liftIO $ readFile filePath
+  IT.checkText filePath content
