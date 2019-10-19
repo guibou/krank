@@ -1,4 +1,8 @@
-resolver: lts-14.5
+resolver: lts-14.6
 
 packages:
 - .
+
+# PyF was removed from lts and nightly without notice
+extra-deps:
+- PyF-0.8.1.1@sha256:bd9369c55968b3b6be251c66e513b77af22ccc9fa60b6343ab6ff7d851cf28cd,2567

@@ -10,4 +10,4 @@ processFile :: FilePath      -- ^ the file to analyze
             -> IO [Violation]
 processFile filePath mGithubKey = do
   content <- readFile filePath
-  IT.checkText content mGithubKey
+  IT.checkText filePath content mGithubKey

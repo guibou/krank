@@ -7,9 +7,15 @@ module Test.Krank.Checkers.IssueTrackerSpec (
 
 import PyF (fmt)
 import Test.Hspec
-import Text.Regex.Applicative ((=~))
 
 import Krank.Checkers.IssueTracker
+import Text.Megaparsec (parseMaybe, Parsec)
+import Data.Void
+import Text.Megaparsec.Pos (SourcePos(..), mkPos)
+
+-- | Alias for fast parsing
+(=~) :: String -> Parsec Void String GitIssue -> Maybe GitIssue
+url =~ parser = parseMaybe parser url
 
 spec :: Spec
 spec =
@@ -71,12 +77,12 @@ spec =
 
     describe "#extractIssues" $
       it "handles both github and gitlab" $ do
-        let match = extractIssues [fmt|https://github.com/guibou/krank/issues/2
+        let match = extractIssues "localFile" [fmt|https://github.com/guibou/krank/issues/2
         some text
         https://gitlab.com/gitlab-org/gitlab-foss/issues/67390
         and more github https://github.com/guibou/krank/issues/1
         |]
         match `shouldMatchList` [
-          GitIssue Github "guibou" "krank" 2
-          , GitIssue Gitlab "gitlab-org" "gitlab-foss" 67390
-          , GitIssue Github "guibou" "krank" 1 ]
+          Localized (SourcePos "localFile" (mkPos 1) (mkPos 1)) $ GitIssue Github "guibou" "krank" 2
+          , Localized (SourcePos "localFile" (mkPos 3) (mkPos 17)) $ GitIssue Gitlab "gitlab-org" "gitlab-foss" 67390
+          , Localized (SourcePos "localFile" (mkPos 4) (mkPos 25)) $ GitIssue Github "guibou" "krank" 1 ]

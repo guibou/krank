@@ -7,6 +7,7 @@ module Krank.Formatter (
 
 import Data.Text (Text)
 import PyF (fmt)
+import Text.Megaparsec.Pos (sourcePosPretty)
 
 import Krank.Types
 
@@ -19,4 +20,5 @@ showViolation :: Violation
 showViolation violation = [fmt|
 [{(show (level violation))}] {message violation}
     in: {snippet violation}
+    file: {sourcePosPretty (location violation)}
 |]

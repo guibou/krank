@@ -4,10 +4,12 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE DuplicateRecordFields #-}
 
 module Krank.Checkers.IssueTracker (
   GitIssue(..)
   , GitServer(..)
+  , Localized(..)
   , checkText
   , extractIssues
   , githubRE
@@ -21,18 +23,31 @@ import Data.Aeson (Value, (.:))
 import qualified Data.Aeson.Types as AesonT
 import qualified Data.ByteString.UTF8 as BSU
 import Data.Char (isDigit)
-import Data.Maybe (fromMaybe)
 import Data.Text (Text, pack)
 import qualified Network.HTTP.Req as Req
 import PyF (fmt)
-import Text.Regex.Applicative ((=~), RE(), few, psym, some, string)
 
-import Krank.Checkers.Common
+import Replace.Megaparsec
+import Text.Megaparsec hiding (token)
+import Text.Megaparsec.Char
+import Data.Void
+import Data.Either (rights)
+
 import Krank.Types
 
 data GitServer = Github | Gitlab deriving (Eq, Show)
 
 data IssueStatus = Open | Closed deriving (Eq, Show)
+
+-- | Represents a localized chunk of information
+-- in a file
+data Localized t = Localized
+  { location :: SourcePos
+  , unLocalized :: t
+  } deriving (Show, Eq)
+
+localized :: Parser t -> Parser (Localized t)
+localized p = Localized <$> getSourcePos <*> p
 
 data GitIssue = GitIssue {
   server :: GitServer,
@@ -42,7 +57,7 @@ data GitIssue = GitIssue {
 } deriving (Eq, Show)
 
 data GitIssueWithStatus = GitIssueWithStatus {
-  gitIssue :: GitIssue,
+  gitIssue :: Localized GitIssue,
   issueStatus :: IssueStatus
 } deriving (Eq, Show)
 
@@ -51,36 +66,42 @@ serverDomain :: GitServer
 serverDomain Github = "github.com"
 serverDomain Gitlab = "gitlab.com"
 
-githubRE :: RE Char GitIssue
+type Parser t = Parsec Void String t
+
+githubRE :: Parser GitIssue
 githubRE = gitRepoRE Github
 
-gitlabRE :: RE Char GitIssue
+gitlabRE :: Parser GitIssue
 gitlabRE = gitRepoRE Gitlab
 
 gitRepoRE :: GitServer
-          -> RE Char GitIssue
+          -> Parser GitIssue
 gitRepoRE gitServer = do
   optional ("http" *> optional "s" *> "://")
   optional "www."
   string (serverDomain gitServer)
   "/"
-  repoOwner <- few (psym ('/' /=))
+  repoOwner <- some (satisfy ('/'/=))
   "/"
-  repoName <- few (psym ('/' /=))
+  repoName <- some (satisfy ('/'/=))
   "/"
   "issues/"
-  issueNumStr <- some (psym isDigit)
+  issueNumStr <- some (satisfy isDigit)
   -- Note that read is safe because of the regex parsing
   return $ GitIssue gitServer (pack repoOwner) (pack repoName) (read issueNumStr)
 
-extractIssues :: String
-              -> [GitIssue]
-extractIssues toCheck =
-  concat matches
-    where
-      patterns = [githubRE, gitlabRE]
-      mMatches = (=~) toCheck . multiple <$> patterns
-      matches = fromMaybe [] <$> mMatches
+extractIssues
+  :: FilePath
+  -> String
+  -> [Localized GitIssue]
+extractIssues filePath toCheck = case parse (findAllCap patterns) filePath toCheck of
+  Left _ -> []
+  Right res -> map snd $ rights res
+  where
+    patterns = localized $ choice [
+      githubRE,
+      gitlabRE
+      ]
 
 -- Supports only github for the moment
 issueUrl :: GitIssue
@@ -137,15 +158,15 @@ errorParser o = do
       readErr (AesonT.Success errText) = pack errText
       readErr (AesonT.Error _) = "invalid JSON"
 
-gitIssuesWithStatus :: [GitIssue]
+gitIssuesWithStatus :: [Localized GitIssue]
                     -> Maybe GithubKey
-                    -> IO [Either Text GitIssueWithStatus]
+                    -> IO [Either (Text, Localized GitIssue) GitIssueWithStatus]
 gitIssuesWithStatus issues mGithubKey = do
-  let urls = issueUrl <$> issues
+  let urls = issueUrl . unLocalized <$> issues
   statuses <- mapM (restIssue mGithubKey) urls
   pure $ zipWith f issues (fmap statusParser statuses)
     where
-      f _ (Left err) = Left err
+      f issue (Left err) = Left (err, issue)
       f issue (Right is) = Right $ GitIssueWithStatus issue is
 
 issueTrackerChecker :: Text
@@ -161,7 +182,7 @@ issueToSnippet :: GitIssueWithStatus
                -> Text
 issueToSnippet i = [fmt|{owner issue}/{repo issue}|]
   where
-    issue = gitIssue i
+    issue = unLocalized $ gitIssue i
 
 issueToMessage :: GitIssueWithStatus
                -> Text
@@ -169,15 +190,16 @@ issueToMessage i = case issueStatus i of
   Open   -> [fmt|issue #{issueNum issue} still Open|]
   Closed -> [fmt|issue #{issueNum issue} is now Closed|]
   where
-    issue = gitIssue i
+    issue = unLocalized $ gitIssue i
 
-checkText :: String
+checkText :: FilePath
+          -> String
           -> Maybe GithubKey
           -> IO [Violation]
-checkText t mGithubKey = do
-  let issues = extractIssues t
+checkText path t mGithubKey = do
+  let issues = extractIssues path t
   issuesWithStatus <- gitIssuesWithStatus issues mGithubKey
   pure $ fmap f issuesWithStatus
     where
-      f (Left err) = Violation issueTrackerChecker Warning "Url could not be reached" err
-      f (Right issue) = Violation issueTrackerChecker (issueToLevel issue) (issueToSnippet issue) (issueToMessage issue)
+      f (Left (err, issue)) = Violation issueTrackerChecker Warning "Url could not be reached" err (location (issue :: Localized GitIssue))
+      f (Right issue) = Violation issueTrackerChecker (issueToLevel issue) (issueToSnippet issue) (issueToMessage issue) (location ((gitIssue issue) :: Localized GitIssue))
