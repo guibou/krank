@@ -19,18 +19,19 @@ import Krank.Types
 
 data KrankOpts = KrankOpts {
   codeFilePaths :: [FilePath],
-  githubKey :: GithubKey
+  githubKey :: Maybe GithubKey
 }
 
 filesToParse :: Opt.Parser [FilePath]
 filesToParse = many (Opt.argument Opt.str (Opt.metavar "FILES..."))
 
-githubKeyToParse :: Opt.Parser GithubKey
-githubKeyToParse = GithubKey <$> (
-  optional $ Opt.strOption $
-    Opt.long "github-key"
-    <> Opt.metavar "DEVELOPER_KEY"
-    <> Opt.help "A github developer key to allow for more API calls")
+githubKeyToParse :: Opt.Parser (Maybe GithubKey)
+githubKeyToParse = optional (
+  GithubKey <$> (
+    Opt.strOption $
+      Opt.long "github-key"
+      <> Opt.metavar "DEVELOPER_KEY"
+      <> Opt.help "A github developer key to allow for more API calls"))
 
 optionsParser :: Opt.Parser KrankOpts
 optionsParser = KrankOpts

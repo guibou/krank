@@ -6,7 +6,7 @@ module Krank.Types (
 
 import Data.Text (Text)
 
-newtype GithubKey = GithubKey (Maybe String)
+newtype GithubKey = GithubKey String
 
 data ViolationLevel = Info | Warning | Error deriving (Show)
 

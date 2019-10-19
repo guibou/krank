@@ -8,7 +8,6 @@
 module Krank.Checkers.IssueTracker (
   GitIssue(..)
   , GitServer(..)
-  , checkFile
   , checkText
   , extractIssues
   , githubRE
@@ -26,7 +25,6 @@ import Data.Maybe (fromMaybe)
 import Data.Text (Text, pack)
 import qualified Network.HTTP.Req as Req
 import PyF (fmt)
-import System.IO (readFile)
 import Text.Regex.Applicative ((=~), RE(), few, psym, some, string)
 
 import Krank.Checkers.Common
@@ -93,9 +91,9 @@ issueUrl issue = case server issue of
 
 -- try Issue can fail, on non-2xx HTTP response
 tryRestIssue :: Req.Url 'Req.Https
-             -> GithubKey
+             -> Maybe GithubKey
              -> IO Value
-tryRestIssue url (GithubKey mGithubKey) =
+tryRestIssue url mGithubKey =
   Req.runReq Req.defaultHttpConfig $ do
     r <- Req.req Req.GET url Req.NoReqBody Req.jsonResponse (
       Req.header "User-Agent" "krank"
@@ -104,7 +102,7 @@ tryRestIssue url (GithubKey mGithubKey) =
 
   where
     authHeaders = case mGithubKey of
-      Just token -> Req.oAuth2Token (BSU.fromString token)
+      Just (GithubKey token) -> Req.oAuth2Token (BSU.fromString token)
       Nothing -> mempty
 
 httpExcHandler :: Req.Url 'Req.Https
@@ -112,7 +110,7 @@ httpExcHandler :: Req.Url 'Req.Https
                -> IO Value
 httpExcHandler url _ = pure . AesonT.object $ [("error", AesonT.String . pack . show $ url)]
 
-restIssue :: GithubKey
+restIssue :: Maybe GithubKey
              -> Req.Url 'Req.Https
              -> IO Value
 restIssue mGithubKey url = catch (tryRestIssue url mGithubKey) (httpExcHandler url)
@@ -140,7 +138,7 @@ errorParser o = do
       readErr (AesonT.Error _) = "invalid JSON"
 
 gitIssuesWithStatus :: [GitIssue]
-                    -> GithubKey
+                    -> Maybe GithubKey
                     -> IO [Either Text GitIssueWithStatus]
 gitIssuesWithStatus issues mGithubKey = do
   let urls = issueUrl <$> issues
@@ -174,7 +172,7 @@ issueToMessage i = case issueStatus i of
     issue = gitIssue i
 
 checkText :: String
-          -> GithubKey
+          -> Maybe GithubKey
           -> IO [Violation]
 checkText t mGithubKey = do
   let issues = extractIssues t
@@ -183,9 +181,3 @@ checkText t mGithubKey = do
     where
       f (Left err) = Violation issueTrackerChecker Warning "Url could not be reached" err
       f (Right issue) = Violation issueTrackerChecker (issueToLevel issue) (issueToSnippet issue) (issueToMessage issue)
-
-checkFile :: FilePath
-      -> IO [Violation]
-checkFile file = do
-  content <- readFile file
-  checkText content (GithubKey Nothing)
