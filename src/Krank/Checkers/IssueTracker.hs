@@ -18,7 +18,7 @@ module Krank.Checkers.IssueTracker (
   ) where
 
 import Control.Applicative ((*>), optional)
-import Control.Exception (catch)
+import Control.Exception.Safe (catch)
 import Data.Aeson (Value, (.:))
 import qualified Data.Aeson.Types as AesonT
 import qualified Data.ByteString.UTF8 as BSU
