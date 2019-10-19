@@ -29,9 +29,9 @@ githubKeyToParse :: Opt.Parser (Maybe GithubKey)
 githubKeyToParse = optional (
   GithubKey <$> (
     Opt.strOption $
-      Opt.long "github-key"
+      Opt.long "issuetracker-githubkey"
       <> Opt.metavar "DEVELOPER_KEY"
-      <> Opt.help "A github developer key to allow for more API calls"))
+      <> Opt.help "A github developer key to allow for more API calls for the IssueTracker checker"))
 
 optionsParser :: Opt.Parser KrankOpts
 optionsParser = KrankOpts
