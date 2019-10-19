@@ -37,7 +37,11 @@ githubKeyToParse = optional (
 optionsParser :: Opt.Parser KrankOpts
 optionsParser = KrankOpts
   <$> filesToParse
-  <*> (KrankConfig <$> githubKeyToParse)
+  <*> (KrankConfig
+       <$> githubKeyToParse
+       <*> (Opt.switch $ Opt.long "dry-run"
+        <> Opt.help "Perform a dry run. Parse file, but do not execute HTTP requests")
+      )
 
 opts :: Opt.ParserInfo KrankOpts
 opts = Opt.info (optionsParser <**> Opt.helper)

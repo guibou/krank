@@ -162,12 +162,18 @@ errorParser o = do
 gitIssuesWithStatus :: [Localized GitIssue]
                     -> ReaderT KrankConfig IO [Either (Text, Localized GitIssue) GitIssueWithStatus]
 gitIssuesWithStatus issues = do
-  let urls = issueUrl . unLocalized <$> issues
-  statuses <- mapM restIssue urls
-  pure $ zipWith f issues (fmap statusParser statuses)
-    where
-      f issue (Left err) = Left (err, issue)
-      f issue (Right is) = Right $ GitIssueWithStatus issue is
+  isDryRun <- dryRun <$> ask
+
+  if isDryRun
+    then do
+      pure $ map (\c -> Left ("Dry run", c)) issues
+    else do
+    let urls = issueUrl . unLocalized <$> issues
+    statuses <- mapM restIssue urls
+    pure $ zipWith f issues (fmap statusParser statuses)
+      where
+        f issue (Left err) = Left (err, issue)
+        f issue (Right is) = Right $ GitIssueWithStatus issue is
 
 issueTrackerChecker :: Text
 issueTrackerChecker = "GIT Issue Tracker"

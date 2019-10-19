@@ -21,4 +21,5 @@ data Violation = Violation { checker :: Text
 
 data KrankConfig = KrankConfig
   { githubKey :: Maybe GithubKey
+  , dryRun :: Bool
   }
