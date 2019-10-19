@@ -52,4 +52,6 @@ workflows:
   nix_stack:
     jobs:
       - nix
-      - stack
+# Disable stack build, it takes too much memory and time. We'll see for release
+# how it build with stack and push it to lts.
+#      - stack
