@@ -15,6 +15,16 @@ Krank will parse you comment and check fact, so the code won't bitrot. For examp
 
 Check the github issues section to see the list of possible checkers.
 
+# Usage
+
+Just launch the `krank` command and pass a file or a list of files.  
+You can check `krank --help` for a list of options.  
+Additionally, the checker documentation pages might contain more information about checker specific
+option (See below)
+
+# Checkers
+
+[IssueTracker](docs/Checkers/IssueTracker.md)
 
 # Design guidelines
 
