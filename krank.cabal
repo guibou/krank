@@ -15,7 +15,7 @@ homepage:            https://github.com/guibou/krank
 -- copyright:
 -- category:
 build-type:          Simple
-extra-source-files:  CHANGELOG.md, README.md
+extra-source-files:  CHANGELOG.md, README.md HACKING.md docs/Checkers/IssueTracker.md
 
 library
   exposed-modules:     Krank

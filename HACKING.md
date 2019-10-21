@@ -24,4 +24,4 @@ Should work.
 
 # Hacking
 
-Edit code, ensure that test are passing and open a pull request on github. Thank you ;)
+Edit code, ensure that test are passing and open a pull request on Github. Thank you ;)
