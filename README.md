@@ -1,12 +1,14 @@
 # Krank
 
-Krank checks your code source comments for important markers
+Krank checks your code source comments for important markers.  
+For a list of available comment checkers, see [Checkers](#Checkers)
 
 For now it is vaporware, it is still in the design phase.
 
 # Purpose
 
-Krank will parse you comment and check fact, so the code won't bitrot. For example, it will:
+Krank will parse the comments in the code and check fact, so the code won't bitrot. For example, it
+will:
 
 - look for link to github issue / pull request and warn you if there are now closed: #1
 - check for cross reference in comments: #2
@@ -22,37 +24,25 @@ You can check `krank --help` for a list of options.
 Additionally, the checker documentation pages might contain more information about checker specific
 option (See below)
 
+## Outputs
+
+Each checker will return a list of *Violation* each specifying a level:
+
+* **Info** violations are there just to give some information
+* **Warning** violations are meant to warn the user about an issue in the comments, but one that is
+  not considered important enough to fail a build.
+* **Error** violations are meant to fail the build.
+
+Each checker provides a default level for each type of violation it might return, but this level can
+be overridden by configuration flags (TBD)
+
+## Return Code (TBD)
+
+`krank` will exit with a code that is equal to the number of **Error** level violations it reported.
+
+This implies that if `krank` returns no **Error** but only **Info** or **Warning**, it will return
+with an exit code of `0`
+
 # Checkers
 
 [IssueTracker](docs/Checkers/IssueTracker.md)
-
-# Design guidelines
-
-When designing a rule, we want to follow some guidelines:
-
-- Be as language agnostic as possible. We look for plain text in comment and if possible we will parse the full text without any logic to separate comment from code.
-- Be as simple as possible. The less custom markers, the better.
-- We can be opiniated if needed. That's better to have a simple rule with an opiniated choice than a complex rule aiming at matching all the use case of the universe.
-
-# UI Design
-
-## Level of error
-
-Krank will raise two type of notifications:
-
-- Warnings
-- Fatal errors
-
-A *Fatal error* is an assumption on the codebase which should never be violated and only depends on the local source code. This should fail in a continuous integration system.
-
-A *Warning* is an assumption on the codebase which may be violated by external changes. For example, a github issue may be closed at any point in time and raise the warning. We don't want that to fail in a continuous integration context to ensure reproducibility of build. However the notification is important.
-
-The UI will provide flags to ignore some notifications or change the level of them (e.g. consider all warnings as fatal or the converse).
-
-## Performance
-
-Parsing of text file and evaluating of rules (especially the ones which need Internet access) should be done in a parallel way to reduce the time used by the executable.
-
-# Hacking
-
-Krank is written in Haskell, because why not ;) It aims at being available in Hackage / Stackage with minimal (if zero) system dependencies.
