@@ -13,7 +13,7 @@ module Krank.Checkers.IssueTracker (
   , checkText
   , extractIssues
   , githubRE
-  , gitlabRE
+  -- , gitlabRE
   , gitRepoRE
   ) where
 
@@ -35,7 +35,9 @@ import Data.Either (rights)
 
 import Krank.Types
 
-data GitServer = Github | Gitlab deriving (Eq, Show)
+data GitServer = Github
+  -- Gitlab -- TODO: enable gitlab again
+  deriving (Eq, Show)
 
 data IssueStatus = Open | Closed deriving (Eq, Show)
 
@@ -64,15 +66,15 @@ data GitIssueWithStatus = GitIssueWithStatus {
 serverDomain :: GitServer
              -> String
 serverDomain Github = "github.com"
-serverDomain Gitlab = "gitlab.com"
+-- serverDomain Gitlab = "gitlab.com"
 
 type Parser t = Parsec Void String t
 
 githubRE :: Parser GitIssue
 githubRE = gitRepoRE Github
 
-gitlabRE :: Parser GitIssue
-gitlabRE = gitRepoRE Gitlab
+-- gitlabRE :: Parser GitIssue
+-- gitlabRE = gitRepoRE Gitlab
 
 gitRepoRE :: GitServer
           -> Parser GitIssue
@@ -99,8 +101,8 @@ extractIssues filePath toCheck = case parse (findAllCap patterns) filePath toChe
   Right res -> map snd $ rights res
   where
     patterns = localized $ choice [
-      githubRE,
-      gitlabRE
+      githubRE
+      -- gitlabRE -- TODO: enable gitlab again
       ]
 
 -- Supports only github for the moment
@@ -108,7 +110,7 @@ issueUrl :: GitIssue
          -> Req.Url 'Req.Https
 issueUrl issue = case server issue of
   Github -> Req.https "api.github.com" Req./: "repos" Req./: owner issue Req./: repo issue Req./: "issues" Req./: (pack . show $ issueNum issue)
-  Gitlab -> Req.https "google.com"
+  -- Gitlab -> Req.https "google.com"
 
 -- try Issue can fail, on non-2xx HTTP response
 tryRestIssue :: Req.Url 'Req.Https

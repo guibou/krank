@@ -65,10 +65,10 @@ spec =
         let match = "github.com/guibou/krank/issues/" =~ githubRE
         match `shouldBe` Nothing
 
-    describe "#gitlabRE" $
-      it "handles full https url" $ do
-        let match = "https://gitlab.com/gitlab-org/gitlab-foss/issues/67390" =~ gitlabRE
-        match `shouldBe` (Just $ GitIssue Gitlab "gitlab-org" "gitlab-foss" 67390)
+    -- describe "#gitlabRE" $
+    --   it "handles full https url" $ do
+    --     let match = "https://gitlab.com/gitlab-org/gitlab-foss/issues/67390" =~ gitlabRE
+    --     match `shouldBe` (Just $ GitIssue Gitlab "gitlab-org" "gitlab-foss" 67390)
 
     describe "#githubRE" $
       it "handles full https url" $ do
@@ -84,5 +84,5 @@ spec =
         |]
         match `shouldMatchList` [
           Localized (SourcePos "localFile" (mkPos 1) (mkPos 1)) $ GitIssue Github "guibou" "krank" 2
-          , Localized (SourcePos "localFile" (mkPos 3) (mkPos 17)) $ GitIssue Gitlab "gitlab-org" "gitlab-foss" 67390
+          -- , Localized (SourcePos "localFile" (mkPos 3) (mkPos 17)) $ GitIssue Gitlab "gitlab-org" "gitlab-foss" 67390
           , Localized (SourcePos "localFile" (mkPos 4) (mkPos 25)) $ GitIssue Github "guibou" "krank" 1 ]
