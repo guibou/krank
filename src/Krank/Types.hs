@@ -2,6 +2,7 @@ module Krank.Types (
   GithubKey(..)
   , Violation(..)
   , ViolationLevel(..)
+  , KrankConfig(..)
   ) where
 
 import Data.Text (Text)
@@ -17,3 +18,8 @@ data Violation = Violation { checker :: Text
                            , message :: Text
                            , location :: SourcePos
                            } deriving (Show)
+
+data KrankConfig = KrankConfig
+  { githubKey :: Maybe GithubKey
+  , dryRun :: Bool
+  }

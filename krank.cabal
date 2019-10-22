@@ -32,6 +32,8 @@ library
                        , utf8-string >= 1.0.1.1 && < 1.1
                        , replace-megaparsec
                        , megaparsec
+                       , mtl
+                       , safe-exceptions
   hs-source-dirs:      src
   ghc-options: -Wall
   default-language:    Haskell2010
@@ -58,5 +60,6 @@ executable krank
                        , krank
                        , PyF
                        , safe-exceptions
+                       , mtl
   hs-source-dirs:      app
   default-language:    Haskell2010

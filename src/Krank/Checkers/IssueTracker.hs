@@ -18,7 +18,7 @@ module Krank.Checkers.IssueTracker (
   ) where
 
 import Control.Applicative ((*>), optional)
-import Control.Exception (catch)
+import Control.Exception.Safe (catch)
 import Data.Aeson (Value, (.:))
 import qualified Data.Aeson.Types as AesonT
 import qualified Data.ByteString.UTF8 as BSU
@@ -32,6 +32,7 @@ import Text.Megaparsec hiding (token)
 import Text.Megaparsec.Char
 import Data.Void
 import Data.Either (rights)
+import Control.Monad.Reader
 
 import Krank.Types
 
@@ -114,29 +115,29 @@ issueUrl issue = case server issue of
 
 -- try Issue can fail, on non-2xx HTTP response
 tryRestIssue :: Req.Url 'Req.Https
-             -> Maybe GithubKey
-             -> IO Value
-tryRestIssue url mGithubKey =
+             -> ReaderT KrankConfig IO Value
+tryRestIssue url = do
+  mGithubKey <- githubKey <$> ask
+  let
+    authHeaders = case mGithubKey of
+      Just (GithubKey token) -> Req.oAuth2Token (BSU.fromString token)
+      Nothing -> mempty
+
   Req.runReq Req.defaultHttpConfig $ do
     r <- Req.req Req.GET url Req.NoReqBody Req.jsonResponse (
       Req.header "User-Agent" "krank"
       <> authHeaders)
     pure $ Req.responseBody r
 
-  where
-    authHeaders = case mGithubKey of
-      Just (GithubKey token) -> Req.oAuth2Token (BSU.fromString token)
-      Nothing -> mempty
 
 httpExcHandler :: Req.Url 'Req.Https
                -> Req.HttpException
-               -> IO Value
+               -> ReaderT KrankConfig IO Value
 httpExcHandler url _ = pure . AesonT.object $ [("error", AesonT.String . pack . show $ url)]
 
-restIssue :: Maybe GithubKey
-             -> Req.Url 'Req.Https
-             -> IO Value
-restIssue mGithubKey url = catch (tryRestIssue url mGithubKey) (httpExcHandler url)
+restIssue :: Req.Url 'Req.Https
+          -> ReaderT KrankConfig IO Value
+restIssue url = catch (tryRestIssue url) (httpExcHandler url)
 
 statusParser :: Value
             -> Either Text IssueStatus
@@ -161,15 +162,20 @@ errorParser o = do
       readErr (AesonT.Error _) = "invalid JSON"
 
 gitIssuesWithStatus :: [Localized GitIssue]
-                    -> Maybe GithubKey
-                    -> IO [Either (Text, Localized GitIssue) GitIssueWithStatus]
-gitIssuesWithStatus issues mGithubKey = do
-  let urls = issueUrl . unLocalized <$> issues
-  statuses <- mapM (restIssue mGithubKey) urls
-  pure $ zipWith f issues (fmap statusParser statuses)
-    where
-      f issue (Left err) = Left (err, issue)
-      f issue (Right is) = Right $ GitIssueWithStatus issue is
+                    -> ReaderT KrankConfig IO [Either (Text, Localized GitIssue) GitIssueWithStatus]
+gitIssuesWithStatus issues = do
+  isDryRun <- dryRun <$> ask
+
+  if isDryRun
+    then do
+      pure $ map (\c -> Left ("Dry run", c)) issues
+    else do
+    let urls = issueUrl . unLocalized <$> issues
+    statuses <- mapM restIssue urls
+    pure $ zipWith f issues (fmap statusParser statuses)
+      where
+        f issue (Left err) = Left (err, issue)
+        f issue (Right is) = Right $ GitIssueWithStatus issue is
 
 issueTrackerChecker :: Text
 issueTrackerChecker = "GIT Issue Tracker"
@@ -196,11 +202,10 @@ issueToMessage i = case issueStatus i of
 
 checkText :: FilePath
           -> String
-          -> Maybe GithubKey
-          -> IO [Violation]
-checkText path t mGithubKey = do
+          -> ReaderT KrankConfig IO [Violation]
+checkText path t = do
   let issues = extractIssues path t
-  issuesWithStatus <- gitIssuesWithStatus issues mGithubKey
+  issuesWithStatus <- gitIssuesWithStatus issues
   pure $ fmap f issuesWithStatus
     where
       f (Left (err, issue)) = Violation issueTrackerChecker Warning "Url could not be reached" err (location (issue :: Localized GitIssue))

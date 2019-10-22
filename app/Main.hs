@@ -11,6 +11,7 @@ import Data.Semigroup ((<>))
 import Data.Text (unpack)
 import qualified Options.Applicative as Opt
 import Options.Applicative ((<**>), many)
+import Control.Monad.Reader
 import PyF
 
 import Krank
@@ -19,7 +20,7 @@ import Krank.Types
 
 data KrankOpts = KrankOpts {
   codeFilePaths :: [FilePath],
-  githubKey :: Maybe GithubKey
+  krankConfig :: KrankConfig
 }
 
 filesToParse :: Opt.Parser [FilePath]
@@ -36,7 +37,11 @@ githubKeyToParse = optional (
 optionsParser :: Opt.Parser KrankOpts
 optionsParser = KrankOpts
   <$> filesToParse
-  <*> githubKeyToParse
+  <*> (KrankConfig
+       <$> githubKeyToParse
+       <*> (Opt.switch $ Opt.long "dry-run"
+        <> Opt.help "Perform a dry run. Parse file, but do not execute HTTP requests")
+      )
 
 opts :: Opt.ParserInfo KrankOpts
 opts = Opt.info (optionsParser <**> Opt.helper)
@@ -44,9 +49,14 @@ opts = Opt.info (optionsParser <**> Opt.helper)
   <> Opt.progDesc "Checks the comments in FILES"
   <> Opt.header "krank - a comment linter / analytics tool" )
 
+runKrank :: FilePath -> KrankConfig -> IO ()
+runKrank path options = do
+  violations <- runReaderT (processFile path) options
+  putStr . unpack . showViolations $ violations
+
 main :: IO ()
 main = do
   options <- Opt.execParser opts
   (flip mapM_) (codeFilePaths options) $ \path -> do
-    (processFile path (githubKey options) >>= putStr . unpack . showViolations)
+    (runKrank path (krankConfig options))
     `catchAnyDeep` (\(SomeException e) -> hPutStrLn stderr [fmt|Error when processing {path}: {show e}|])
