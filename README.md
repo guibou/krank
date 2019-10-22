@@ -1,48 +1,44 @@
 # Krank
 
-Krank checks your code source comments for important markers.  
-For a list of available comment checkers, see [Checkers](#Checkers)
+Krank checks your code source comments for important markers.
 
-For now it is vaporware, it is still in the design phase.
-
-# Purpose
-
-Krank will parse the comments in the code and check fact, so the code won't bitrot. For example, it
-will:
-
-- look for link to github issue / pull request and warn you if there are now closed: #1
-- check for cross reference in comments: #2
-- check for outdated / bitroting TODOs: #3, #4
-- check for association between code and comment: #5
-
-Check the github issues section to see the list of possible checkers.
+Comments are part of our code and are not usually tested correctly. Hence their content can become incoherent or obsolete. Krank tries to avoid that by running checkers on the comment themselves.
 
 # Usage
 
-Just launch the `krank` command and pass a file or a list of files.  
-You can check `krank --help` for a list of options.  
-Additionally, the checker documentation pages might contain more information about checker specific
-option (See below)
+Just launch the `krank` command with a list of files as arguments. It
+works on any kind of source code file and print a reports of
+informations found in the comments:
 
-## Outputs
+```bash
+$ krank $(git ls-files)
 
-Each checker will return a list of *Violation* each specifying a level:
+[Info] issue #2733 still Open
+    in: NixOS/nix
+    file: default.nix:20:20
 
-* **Info** violations are there just to give some information
-* **Warning** violations are meant to warn the user about an issue in the comments, but one that is
-  not considered important enough to fail a build.
-* **Error** violations are meant to fail the build.
+[Error] issue #6313 is now Closed
+    in: bazelbuild/bazel
+    file: default.nix:67:11
 
-Each checker provides a default level for each type of violation it might return, but this level can
-be overridden by configuration flags (TBD)
+[Error] issue #22 is now Closed
+    in: guibou/PyF
+    file: src/Foo.hs:100:4
+```
 
-## Return Code (TBD)
+Here `krank` is telling us that our source code links to github
+issues which are now closed. Time to remove some workarounds now that upstream issues are fixed!
 
-`krank` will exit with a code that is equal to the number of **Error** level violations it reported.
+You can check `krank --help` for a list of options.
 
-This implies that if `krank` returns no **Error** but only **Info** or **Warning**, it will return
-with an exit code of `0`
+# Available checkers
 
-# Checkers
+- [IssueTracker](docs/Checkers/IssueTracker.md) is listing Github
+  issue linked in comment. Issues which are still Open will be listed
+  as info and Closed *issues* are listed as *error*. Convenient to know
+  when to remove workarounds.
 
-[IssueTracker](docs/Checkers/IssueTracker.md)
+# Misc
+
+- Krank is available on Hackage, but you can also [build it manually](HACKING.md).
+- If you want to contribute or add a new checker, you can read the [Contributions guidelines](CONTRIBUTING.md) or [open an issue](https://github.com/guibou/krank/issues).
