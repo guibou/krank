@@ -24,8 +24,16 @@ githubKeyToParse = optional (
   GithubKey <$> (
     Opt.strOption $
       Opt.long "issuetracker-githubkey"
-      <> Opt.metavar "DEVELOPER_KEY"
-      <> Opt.help "A github developer key to allow for more API calls for the IssueTracker checker"))
+      <> Opt.metavar "PERSONAL_GITHUB_KEY"
+      <> Opt.help "A github developer key to allow for more API calls or access to private github repo for the IssueTracker checker"))
+
+gitlabKeyToParse :: Opt.Parser (Maybe GitlabKey)
+gitlabKeyToParse = optional (
+  GitlabKey <$> (
+    Opt.strOption $
+      Opt.long "issuetracker-gitlabkey"
+      <> Opt.metavar "PERSONAL_GITLAB_KEY"
+      <> Opt.help "A gitlab developer key to allow reaching private gitlab repo for the IssueTracker checker"))
 
 noColorParse :: Opt.Parser Bool
 noColorParse = not <$> Opt.switch (
@@ -37,6 +45,7 @@ optionsParser = KrankOpts
   <$> filesToParse
   <*> (KrankConfig
        <$> githubKeyToParse
+       <*> gitlabKeyToParse
        <*> (Opt.switch $ Opt.long "dry-run"
         <> Opt.help "Perform a dry run. Parse file, but do not execute HTTP requests")
        <*> noColorParse
