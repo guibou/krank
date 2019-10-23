@@ -13,9 +13,9 @@ module Krank.Checkers.IssueTracker (
   , Localized(..)
   , checkText
   , extractIssues
-  , githubRE
+  , githubParser
   -- , gitlabRE
-  , gitRepoRE
+  , gitRepoParser
   ) where
 
 import Control.Applicative ((*>), optional)
@@ -72,15 +72,15 @@ serverDomain Github = "github.com"
 
 type Parser t = Parsec Void String t
 
-githubRE :: Parser GitIssue
-githubRE = gitRepoRE Github
+githubParser :: Parser GitIssue
+githubParser = gitRepoParser Github
 
 -- gitlabRE :: Parser GitIssue
 -- gitlabRE = gitRepoRE Gitlab
 
-gitRepoRE :: GitServer
-          -> Parser GitIssue
-gitRepoRE gitServer = do
+gitRepoParser :: GitServer
+              -> Parser GitIssue
+gitRepoParser gitServer = do
   optional ("http" *> optional (single 's') *> "://")
   optional "www."
   string (serverDomain gitServer)
@@ -101,7 +101,7 @@ extractIssues filePath toCheck = case parse (findAllCap patterns) filePath toChe
   Right res -> map snd $ rights res
   where
     patterns = localized $ choice [
-      githubRE
+      githubParser
       -- gitlabRE -- TODO: enable gitlab again
       ]
 
