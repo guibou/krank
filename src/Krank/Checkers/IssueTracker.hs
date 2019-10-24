@@ -22,7 +22,6 @@ import Control.Applicative ((*>), optional)
 import Control.Exception.Safe (catch)
 import Data.Aeson (Value, (.:))
 import qualified Data.Aeson.Types as AesonT
-import Data.Char (isDigit)
 import Data.Text (Text, pack)
 import qualified Data.Text.Encoding as Text.Encoding
 import qualified Network.HTTP.Req as Req
@@ -31,6 +30,7 @@ import PyF (fmt)
 import Replace.Megaparsec
 import Text.Megaparsec hiding (token)
 import Text.Megaparsec.Char
+import Text.Megaparsec.Char.Lexer (decimal)
 import Data.Void
 import Data.Either (rights)
 import Control.Monad.Reader
@@ -81,18 +81,16 @@ githubRE = gitRepoRE Github
 gitRepoRE :: GitServer
           -> Parser GitIssue
 gitRepoRE gitServer = do
-  optional ("http" *> optional "s" *> "://")
+  optional ("http" *> optional (single 's') *> "://")
   optional "www."
   string (serverDomain gitServer)
-  "/"
-  repoOwner <- some (satisfy ('/'/=))
-  "/"
-  repoName <- some (satisfy ('/'/=))
-  "/"
-  "issues/"
-  issueNumStr <- some (satisfy isDigit)
-  -- Note that read is safe because of the regex parsing
-  return $ GitIssue gitServer (pack repoOwner) (pack repoName) (read issueNumStr)
+  single '/'
+  repoOwner <- takeWhile1P Nothing ('/'/=)
+  single '/'
+  repoName <- takeWhile1P Nothing ('/'/=)
+  "/issues/"
+  issueNum <- decimal
+  return $ GitIssue gitServer (pack repoOwner) (pack repoName) issueNum
 
 extractIssues
   :: FilePath
