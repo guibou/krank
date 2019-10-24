@@ -5,6 +5,7 @@
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE NamedFieldPuns #-}
 
 module Krank.Checkers.IssueTracker (
   GitIssue(..)
@@ -177,28 +178,20 @@ gitIssuesWithStatus issues = do
         f issue (Left err) = Left (err, issue)
         f issue (Right is) = Right $ GitIssueWithStatus issue is
 
-issueTrackerChecker :: Text
-issueTrackerChecker = "GIT Issue Tracker"
-
 issueToLevel :: GitIssueWithStatus
              -> ViolationLevel
 issueToLevel i = case issueStatus i of
   Open   -> Info
   Closed -> Error
 
-issueToSnippet :: GitIssueWithStatus
-               -> Text
-issueToSnippet i = [fmt|{owner issue}/{repo issue}|]
-  where
-    issue = unLocalized $ gitIssue i
-
 issueToMessage :: GitIssueWithStatus
                -> Text
 issueToMessage i = case issueStatus i of
-  Open   -> [fmt|issue #{issueNum issue} still Open|]
-  Closed -> [fmt|issue #{issueNum issue} is now Closed|]
-  where
-    issue = unLocalized $ gitIssue i
+  Open   -> [fmt|still Open|]
+  Closed -> [fmt|is now Closed|]
+
+issuePrintUrl :: GitIssue -> Text
+issuePrintUrl GitIssue{owner, repo, server, issueNum} = [fmt|https://{serverDomain server}/{owner}/{repo}/issues/{issueNum}|]
 
 checkText :: FilePath
           -> String
@@ -208,5 +201,15 @@ checkText path t = do
   issuesWithStatus <- gitIssuesWithStatus issues
   pure $ fmap f issuesWithStatus
     where
-      f (Left (err, issue)) = Violation issueTrackerChecker Warning "Url could not be reached" err (location (issue :: Localized GitIssue))
-      f (Right issue) = Violation issueTrackerChecker (issueToLevel issue) (issueToSnippet issue) (issueToMessage issue) (location ((gitIssue issue) :: Localized GitIssue))
+      f (Left (err, issue)) = Violation {
+        checker = issuePrintUrl . unLocalized $ issue,
+        level = Warning,
+        message = ("Url could not be reached: " <> err),
+        location = location (issue :: Localized GitIssue)
+        }
+      f (Right issue) = Violation {
+        checker = issuePrintUrl (unLocalized . gitIssue $ issue),
+        level = issueToLevel issue,
+        message = issueToMessage issue,
+        location = location ((gitIssue issue) :: Localized GitIssue)
+        }
