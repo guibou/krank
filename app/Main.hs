@@ -1,19 +1,12 @@
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-import System.IO (hPutStrLn, stderr)
-
-import Control.Exception.Safe
 import Control.Applicative (optional)
 import Data.Semigroup ((<>))
-import Data.Text (unpack)
 import qualified Options.Applicative as Opt
 import Options.Applicative ((<**>), many)
-import Control.Monad.Reader
-import PyF
 
 import Krank
-import Krank.Formatter
 import Krank.Types
 
 data KrankOpts = KrankOpts {
@@ -47,14 +40,8 @@ opts = Opt.info (optionsParser <**> Opt.helper)
   <> Opt.progDesc "Checks the comments in FILES"
   <> Opt.header "krank - a comment linter / analytics tool" )
 
-runKrank :: FilePath -> KrankConfig -> IO ()
-runKrank path options = do
-  violations <- runReaderT (processFile path) options
-  putStr . unpack . showViolations $ violations
-
 main :: IO ()
 main = do
-  options <- Opt.execParser opts
-  (flip mapM_) (codeFilePaths options) $ \path -> do
-    (runKrank path (krankConfig options))
-    `catchAnyDeep` (\(SomeException e) -> hPutStrLn stderr [fmt|Error when processing {path}: {show e}|])
+  config <- Opt.execParser opts
+
+  runKrank (codeFilePaths config) (krankConfig config)
