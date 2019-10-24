@@ -9,13 +9,17 @@ import PyF (fmt)
 import Test.Hspec
 
 import Krank.Checkers.IssueTracker
-import Text.Megaparsec (parseMaybe, Parsec)
-import Data.Void
-import Text.Megaparsec.Pos (SourcePos(..), mkPos)
+import Krank.Types
+import Data.Text
 
--- | Alias for fast parsing
-(=~) :: String -> Parsec Void String GitIssue -> Maybe GitIssue
-url =~ parser = parseMaybe parser url
+-- -- | Alias for fast parsing
+(=~) :: Text -> t -> Maybe GitIssue
+url =~ _ = case findAll url of
+  [(_, x)] -> Just x
+  _ -> Nothing
+
+githubRE :: Bool
+githubRE = True
 
 spec :: Spec
 spec =
@@ -83,6 +87,6 @@ spec =
         and more github https://github.com/guibou/krank/issues/1
         |]
         match `shouldMatchList` [
-          Localized (SourcePos "localFile" (mkPos 1) (mkPos 1)) $ GitIssue Github "guibou" "krank" 2
-          -- , Localized (SourcePos "localFile" (mkPos 3) (mkPos 17)) $ GitIssue Gitlab "gitlab-org" "gitlab-foss" 67390
-          , Localized (SourcePos "localFile" (mkPos 4) (mkPos 25)) $ GitIssue Github "guibou" "krank" 1 ]
+          Localized (SourcePos "localFile" (1) (1)) $ GitIssue Github "guibou" "krank" 2
+          -- , Localized (SourcePos "localFile" (3) (17)) $ GitIssue Gitlab "gitlab-org" "gitlab-foss" 67390
+          , Localized (SourcePos "localFile" (4) (25)) $ GitIssue Github "guibou" "krank" 1 ]

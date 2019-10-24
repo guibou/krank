@@ -9,10 +9,12 @@ module Krank.Formatter (
 
 import Data.Text (Text)
 import PyF (fmt)
-import Text.Megaparsec.Pos (sourcePosPretty)
 import System.Console.Pretty
 
 import Krank.Types
+
+sourcePosPretty :: SourcePos -> Text
+sourcePosPretty (SourcePos path line col) = [fmt|{path}:{line}:{col}|]
 
 showViolation
   :: Bool

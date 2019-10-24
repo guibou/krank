@@ -3,14 +3,17 @@ module Krank.Types (
   , Violation(..)
   , ViolationLevel(..)
   , KrankConfig(..)
+  , SourcePos(..)
   ) where
 
 import Data.Text (Text)
-import Text.Megaparsec (SourcePos)
 
 newtype GithubKey = GithubKey Text
 
 data ViolationLevel = Info | Warning | Error deriving (Show)
+
+data SourcePos = SourcePos FilePath Int Int
+  deriving (Show, Eq)
 
 data Violation = Violation { checker :: Text
                              -- ^ A textual representation of the checker. Most of the time that's

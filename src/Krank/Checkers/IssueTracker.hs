@@ -6,6 +6,8 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE BangPatterns #-}
 
 module Krank.Checkers.IssueTracker (
   GitIssue(..)
@@ -13,27 +15,20 @@ module Krank.Checkers.IssueTracker (
   , Localized(..)
   , checkText
   , extractIssues
-  , githubRE
-  -- , gitlabRE
-  , gitRepoRE
+  , findAll
   ) where
 
-import Control.Applicative ((*>), optional)
 import Control.Exception.Safe (catch)
 import Data.Aeson (Value, (.:))
 import qualified Data.Aeson.Types as AesonT
 import Data.Text (Text, pack)
+import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text.Encoding
 import qualified Network.HTTP.Req as Req
 import PyF (fmt)
 
-import Replace.Megaparsec
-import Text.Megaparsec hiding (token)
-import Text.Megaparsec.Char
-import Text.Megaparsec.Char.Lexer (decimal)
-import Data.Void
-import Data.Either (rights)
 import Control.Monad.Reader
+import Data.Char (isDigit)
 
 import Krank.Types
 
@@ -50,9 +45,6 @@ data Localized t = Localized
   , unLocalized :: t
   } deriving (Show, Eq)
 
-localized :: Parser t -> Parser (Localized t)
-localized p = Localized <$> getSourcePos <*> p
-
 data GitIssue = GitIssue {
   server :: GitServer,
   owner :: Text,
@@ -63,47 +55,36 @@ data GitIssue = GitIssue {
 data GitIssueWithStatus = GitIssueWithStatus {
   gitIssue :: Localized GitIssue,
   issueStatus :: IssueStatus
-} deriving (Eq, Show)
+} deriving (Show)
 
 serverDomain :: GitServer
              -> String
 serverDomain Github = "github.com"
 -- serverDomain Gitlab = "gitlab.com"
 
-type Parser t = Parsec Void String t
-
-githubRE :: Parser GitIssue
-githubRE = gitRepoRE Github
-
--- gitlabRE :: Parser GitIssue
--- gitlabRE = gitRepoRE Gitlab
-
-gitRepoRE :: GitServer
-          -> Parser GitIssue
-gitRepoRE gitServer = do
-  optional ("http" *> optional (single 's') *> "://")
-  optional "www."
-  string (serverDomain gitServer)
-  single '/'
-  repoOwner <- takeWhile1P Nothing ('/'/=)
-  single '/'
-  repoName <- takeWhile1P Nothing ('/'/=)
-  "/issues/"
-  issueNum <- decimal
-  return $ GitIssue gitServer (pack repoOwner) (pack repoName) issueNum
+findAll :: Text -> [(Int, GitIssue)]
+findAll l = go 1 (Text.splitOn "/" l)
+  where
+    go :: Int -> [Text] -> [(Int, GitIssue)]
+    go col (scheme:"":domain:repoOwner:repoName:"issues":(Text.span isDigit->(numStr, rest)):xs)
+    -- TODO: handle gitlab
+    -- TODO: handle correct offset for "http:"
+      | (("https:" `Text.isSuffixOf` scheme || "http:" `Text.isSuffixOf` scheme)) && not (Text.null numStr) && (domain == "github.com" || domain == "www.github.com") =
+         (col + Text.length scheme - 6, GitIssue Github repoOwner repoName (read (Text.unpack numStr))) : go (col + Text.length scheme + Text.length domain + Text.length repoOwner + Text.length repoName + Text.length "issues" + Text.length numStr + 6) (rest:xs)
+    go col (domain:repoOwner:repoName:"issues":(Text.span isDigit->(numStr, rest)):xs)
+    -- TODO: handle gitlab
+      | not (Text.null numStr) && (domain == "github.com" || domain == "www.github.com") =
+         (col, GitIssue Github repoOwner repoName (read (Text.unpack numStr))) : go (col + Text.length domain + Text.length repoOwner + Text.length repoName + Text.length "issues" + Text.length numStr + 6) (rest:xs)
+    go col (skipped:xs) = go (col + Text.length skipped + 1) xs
+    go _ [] = []
 
 extractIssues
   :: FilePath
-  -> String
+  -> Text
   -> [Localized GitIssue]
-extractIssues filePath toCheck = case parse (findAllCap patterns) filePath toCheck of
-  Left _ -> []
-  Right res -> map snd $ rights res
+extractIssues filePath toCheck = concat (zipWith f [1..] (Text.lines toCheck))
   where
-    patterns = localized $ choice [
-      githubRE
-      -- gitlabRE -- TODO: enable gitlab again
-      ]
+    f lineNumber lineContent = map (\(col, x) -> Localized (SourcePos filePath lineNumber col) x) (findAll lineContent)
 
 -- Supports only github for the moment
 issueUrl :: GitIssue
@@ -186,7 +167,7 @@ issuePrintUrl :: GitIssue -> Text
 issuePrintUrl GitIssue{owner, repo, server, issueNum} = [fmt|https://{serverDomain server}/{owner}/{repo}/issues/{issueNum}|]
 
 checkText :: FilePath
-          -> String
+          -> Text
           -> ReaderT KrankConfig IO [Violation]
 checkText path t = do
   let issues = extractIssues path t
