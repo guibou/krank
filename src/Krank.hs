@@ -18,12 +18,10 @@ import Krank.Formatter
 processFile :: FilePath      -- ^ the file to analyze
             -> ReaderT KrankConfig IO ()
 processFile filePath = do
-  content <- liftIO $ readFile filePath
-
-  violations <- IT.checkText filePath content
-
   KrankConfig{useColors} <- ask
 
+  content <- liftIO $ readFile filePath
+  violations <- IT.checkText filePath content
   liftIO $ putStr . unpack . foldMap (showViolation useColors) $ violations
 
 runKrank :: [FilePath] -> KrankConfig -> IO ()

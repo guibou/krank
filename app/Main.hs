@@ -6,7 +6,7 @@ import Data.Semigroup ((<>))
 import qualified Options.Applicative as Opt
 import Options.Applicative ((<**>), many)
 
-import System.Console.Pretty
+import System.Console.Pretty (supportsPretty)
 
 import Krank
 import Krank.Types
@@ -27,6 +27,11 @@ githubKeyToParse = optional (
       <> Opt.metavar "DEVELOPER_KEY"
       <> Opt.help "A github developer key to allow for more API calls for the IssueTracker checker"))
 
+noColorParse :: Opt.Parser Bool
+noColorParse = not <$> Opt.switch (
+  Opt.long "no-colors"
+    <> Opt.help "Disable colored outputs")
+
 optionsParser :: Opt.Parser KrankOpts
 optionsParser = KrankOpts
   <$> filesToParse
@@ -34,8 +39,7 @@ optionsParser = KrankOpts
        <$> githubKeyToParse
        <*> (Opt.switch $ Opt.long "dry-run"
         <> Opt.help "Perform a dry run. Parse file, but do not execute HTTP requests")
-      <*> (not <$> (Opt.switch $ Opt.long "no-colors"
-           <> Opt.help "Disable colored outputs"))
+       <*> noColorParse
       )
 
 opts :: Opt.ParserInfo KrankOpts

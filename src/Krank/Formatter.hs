@@ -19,7 +19,7 @@ showViolation
   -> Violation
   -> Text
 showViolation useColors Violation{checker, location, level, message} = [fmt|
-{sourcePosPretty $ location}: {showViolationLevel useColors level}:
+{sourcePosPretty location}: {showViolationLevel useColors level}:
   {message}: {checker}
 |]
 
