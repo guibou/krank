@@ -13,17 +13,11 @@ informations found in the comments:
 ```bash
 $ krank $(git ls-files)
 
-[Info] issue #2733 still Open
-    in: NixOS/nix
-    file: default.nix:20:20
+default.nix:20:20: info:
+  still Open: https://github.com/NixOS/nix/issues/2733
 
-[Error] issue #6313 is now Closed
-    in: bazelbuild/bazel
-    file: default.nix:67:11
-
-[Error] issue #22 is now Closed
-    in: guibou/PyF
-    file: src/Foo.hs:100:4
+foo.hs:67:11: error:
+  is now Closed: https://github.com/bazelbuild/bazel/issues/6313
 ```
 
 Here `krank` is telling us that our source code links to github
