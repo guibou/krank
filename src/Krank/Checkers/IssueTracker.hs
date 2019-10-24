@@ -165,18 +165,12 @@ errorParser o = do
 gitIssuesWithStatus :: [Localized GitIssue]
                     -> ReaderT KrankConfig IO [Either (Text, Localized GitIssue) GitIssueWithStatus]
 gitIssuesWithStatus issues = do
-  isDryRun <- dryRun <$> ask
-
-  if isDryRun
-    then do
-      pure $ map (\c -> Left ("Dry run", c)) issues
-    else do
-    let urls = issueUrl . unLocalized <$> issues
-    statuses <- mapM restIssue urls
-    pure $ zipWith f issues (fmap statusParser statuses)
-      where
-        f issue (Left err) = Left (err, issue)
-        f issue (Right is) = Right $ GitIssueWithStatus issue is
+  let urls = issueUrl . unLocalized <$> issues
+  statuses <- mapM restIssue urls
+  pure $ zipWith f issues (fmap statusParser statuses)
+    where
+      f issue (Left err) = Left (err, issue)
+      f issue (Right is) = Right $ GitIssueWithStatus issue is
 
 issueToLevel :: GitIssueWithStatus
              -> ViolationLevel
@@ -198,18 +192,29 @@ checkText :: FilePath
           -> ReaderT KrankConfig IO [Violation]
 checkText path t = do
   let issues = extractIssues path t
-  issuesWithStatus <- gitIssuesWithStatus issues
-  pure $ fmap f issuesWithStatus
-    where
-      f (Left (err, issue)) = Violation {
-        checker = issuePrintUrl . unLocalized $ issue,
-        level = Warning,
-        message = ("Url could not be reached: " <> err),
-        location = location (issue :: Localized GitIssue)
-        }
-      f (Right issue) = Violation {
-        checker = issuePrintUrl (unLocalized . gitIssue $ issue),
-        level = issueToLevel issue,
-        message = issueToMessage issue,
-        location = location ((gitIssue issue) :: Localized GitIssue)
-        }
+
+  isDryRun <- dryRun <$> ask
+
+  if isDryRun
+    then pure $ fmap (\issue -> Violation {
+                         checker = issuePrintUrl . unLocalized $ issue,
+                         level = Info,
+                         message = ("Dry run"),
+                         location = location (issue :: Localized GitIssue)
+                         }) issues
+  else do
+    issuesWithStatus <- gitIssuesWithStatus issues
+    pure $ fmap f issuesWithStatus
+      where
+        f (Left (err, issue)) = Violation {
+          checker = issuePrintUrl . unLocalized $ issue,
+          level = Warning,
+          message = ("Url could not be reached: " <> err),
+          location = location (issue :: Localized GitIssue)
+          }
+        f (Right issue) = Violation {
+          checker = issuePrintUrl (unLocalized . gitIssue $ issue),
+          level = issueToLevel issue,
+          message = issueToMessage issue,
+          location = location ((gitIssue issue) :: Localized GitIssue)
+          }
