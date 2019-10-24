@@ -22,9 +22,9 @@ import Control.Applicative ((*>), optional)
 import Control.Exception.Safe (catch)
 import Data.Aeson (Value, (.:))
 import qualified Data.Aeson.Types as AesonT
-import qualified Data.ByteString.UTF8 as BSU
 import Data.Char (isDigit)
 import Data.Text (Text, pack)
+import qualified Data.Text.Encoding as Text.Encoding
 import qualified Network.HTTP.Req as Req
 import PyF (fmt)
 
@@ -121,7 +121,7 @@ tryRestIssue url = do
   mGithubKey <- githubKey <$> ask
   let
     authHeaders = case mGithubKey of
-      Just (GithubKey token) -> Req.oAuth2Token (BSU.fromString token)
+      Just (GithubKey token) -> Req.oAuth2Token (Text.Encoding.encodeUtf8 token)
       Nothing -> mempty
 
   Req.runReq Req.defaultHttpConfig $ do
