@@ -111,7 +111,7 @@ extractIssues filePath toCheck = case parse (findAllCap patterns) filePath toChe
 issueUrl :: GitIssue
          -> Req.Url 'Req.Https
 issueUrl issue = case server issue of
-  Github -> Req.https "api.github.com" Req./: "repos" Req./: owner issue Req./: repo issue Req./: "issues" Req./: (pack . show $ issueNum issue)
+  Github -> Req.https "api.github.com" Req./: "repos" Req./: owner issue Req./: repo issue Req./: "issues" Req./~ issueNum issue
   -- Gitlab -> Req.https "google.com"
 
 -- try Issue can fail, on non-2xx HTTP response
