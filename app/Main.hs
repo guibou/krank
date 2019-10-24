@@ -1,21 +1,14 @@
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-import System.Environment (getArgs)
-import System.Exit (exitFailure)
-import System.IO (hPutStrLn, stderr)
-
-import Control.Exception.Safe
 import Control.Applicative (optional)
 import Data.Semigroup ((<>))
-import Data.Text (unpack)
 import qualified Options.Applicative as Opt
 import Options.Applicative ((<**>), many)
-import Control.Monad.Reader
-import PyF
+
+import System.Console.Pretty (supportsPretty)
 
 import Krank
-import Krank.Formatter
 import Krank.Types
 
 data KrankOpts = KrankOpts {
@@ -34,6 +27,11 @@ githubKeyToParse = optional (
       <> Opt.metavar "DEVELOPER_KEY"
       <> Opt.help "A github developer key to allow for more API calls for the IssueTracker checker"))
 
+noColorParse :: Opt.Parser Bool
+noColorParse = not <$> Opt.switch (
+  Opt.long "no-colors"
+    <> Opt.help "Disable colored outputs")
+
 optionsParser :: Opt.Parser KrankOpts
 optionsParser = KrankOpts
   <$> filesToParse
@@ -41,6 +39,7 @@ optionsParser = KrankOpts
        <$> githubKeyToParse
        <*> (Opt.switch $ Opt.long "dry-run"
         <> Opt.help "Perform a dry run. Parse file, but do not execute HTTP requests")
+       <*> noColorParse
       )
 
 opts :: Opt.ParserInfo KrankOpts
@@ -49,14 +48,15 @@ opts = Opt.info (optionsParser <**> Opt.helper)
   <> Opt.progDesc "Checks the comments in FILES"
   <> Opt.header "krank - a comment linter / analytics tool" )
 
-runKrank :: FilePath -> KrankConfig -> IO ()
-runKrank path options = do
-  violations <- runReaderT (processFile path) options
-  putStr . unpack . showViolations $ violations
-
 main :: IO ()
 main = do
-  options <- Opt.execParser opts
-  (flip mapM_) (codeFilePaths options) $ \path -> do
-    (runKrank path (krankConfig options))
-    `catchAnyDeep` (\(SomeException e) -> hPutStrLn stderr [fmt|Error when processing {path}: {show e}|])
+  canUseColor <- supportsPretty
+
+  config <- Opt.execParser opts
+
+  let
+    kConfig = (krankConfig config) {
+      useColors = useColors (krankConfig config) && canUseColor
+      }
+
+  runKrank (codeFilePaths config) kConfig

@@ -5,6 +5,7 @@
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE NamedFieldPuns #-}
 
 module Krank.Checkers.IssueTracker (
   GitIssue(..)
@@ -164,21 +165,12 @@ errorParser o = do
 gitIssuesWithStatus :: [Localized GitIssue]
                     -> ReaderT KrankConfig IO [Either (Text, Localized GitIssue) GitIssueWithStatus]
 gitIssuesWithStatus issues = do
-  isDryRun <- dryRun <$> ask
-
-  if isDryRun
-    then do
-      pure $ map (\c -> Left ("Dry run", c)) issues
-    else do
-    let urls = issueUrl . unLocalized <$> issues
-    statuses <- mapM restIssue urls
-    pure $ zipWith f issues (fmap statusParser statuses)
-      where
-        f issue (Left err) = Left (err, issue)
-        f issue (Right is) = Right $ GitIssueWithStatus issue is
-
-issueTrackerChecker :: Text
-issueTrackerChecker = "GIT Issue Tracker"
+  let urls = issueUrl . unLocalized <$> issues
+  statuses <- mapM restIssue urls
+  pure $ zipWith f issues (fmap statusParser statuses)
+    where
+      f issue (Left err) = Left (err, issue)
+      f issue (Right is) = Right $ GitIssueWithStatus issue is
 
 issueToLevel :: GitIssueWithStatus
              -> ViolationLevel
@@ -186,27 +178,43 @@ issueToLevel i = case issueStatus i of
   Open   -> Info
   Closed -> Error
 
-issueToSnippet :: GitIssueWithStatus
-               -> Text
-issueToSnippet i = [fmt|{owner issue}/{repo issue}|]
-  where
-    issue = unLocalized $ gitIssue i
-
 issueToMessage :: GitIssueWithStatus
                -> Text
 issueToMessage i = case issueStatus i of
-  Open   -> [fmt|issue #{issueNum issue} still Open|]
-  Closed -> [fmt|issue #{issueNum issue} is now Closed|]
-  where
-    issue = unLocalized $ gitIssue i
+  Open   -> [fmt|still Open|]
+  Closed -> [fmt|now Closed|]
+
+issuePrintUrl :: GitIssue -> Text
+issuePrintUrl GitIssue{owner, repo, server, issueNum} = [fmt|https://{serverDomain server}/{owner}/{repo}/issues/{issueNum}|]
 
 checkText :: FilePath
           -> String
           -> ReaderT KrankConfig IO [Violation]
 checkText path t = do
   let issues = extractIssues path t
-  issuesWithStatus <- gitIssuesWithStatus issues
-  pure $ fmap f issuesWithStatus
-    where
-      f (Left (err, issue)) = Violation issueTrackerChecker Warning "Url could not be reached" err (location (issue :: Localized GitIssue))
-      f (Right issue) = Violation issueTrackerChecker (issueToLevel issue) (issueToSnippet issue) (issueToMessage issue) (location ((gitIssue issue) :: Localized GitIssue))
+
+  isDryRun <- dryRun <$> ask
+
+  if isDryRun
+    then pure $ fmap (\issue -> Violation {
+                         checker = issuePrintUrl . unLocalized $ issue,
+                         level = Info,
+                         message = ("Dry run"),
+                         location = location (issue :: Localized GitIssue)
+                         }) issues
+  else do
+    issuesWithStatus <- gitIssuesWithStatus issues
+    pure $ fmap f issuesWithStatus
+      where
+        f (Left (err, issue)) = Violation {
+          checker = issuePrintUrl . unLocalized $ issue,
+          level = Warning,
+          message = ("Url could not be reached: " <> err),
+          location = location (issue :: Localized GitIssue)
+          }
+        f (Right issue) = Violation {
+          checker = issuePrintUrl (unLocalized . gitIssue $ issue),
+          level = issueToLevel issue,
+          message = issueToMessage issue,
+          location = location ((gitIssue issue) :: Localized GitIssue)
+          }
