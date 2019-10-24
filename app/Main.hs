@@ -1,8 +1,6 @@
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-import System.Environment (getArgs)
-import System.Exit (exitFailure)
 import System.IO (hPutStrLn, stderr)
 
 import Control.Exception.Safe
