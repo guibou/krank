@@ -25,5 +25,9 @@ data Violation = Violation { checker :: Text
 
 data KrankConfig = KrankConfig
   { githubKey :: Maybe GithubKey
+  -- ^ The github oAuth token
   , dryRun :: Bool
+  -- ^ If 'True', all IO operations, such as HTTP requests, are ignored
+  , useColors :: Bool
+  -- ^ Use color for formatting
   }

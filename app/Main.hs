@@ -6,6 +6,8 @@ import Data.Semigroup ((<>))
 import qualified Options.Applicative as Opt
 import Options.Applicative ((<**>), many)
 
+import System.Console.Pretty
+
 import Krank
 import Krank.Types
 
@@ -32,6 +34,8 @@ optionsParser = KrankOpts
        <$> githubKeyToParse
        <*> (Opt.switch $ Opt.long "dry-run"
         <> Opt.help "Perform a dry run. Parse file, but do not execute HTTP requests")
+      <*> (not <$> (Opt.switch $ Opt.long "no-colors"
+           <> Opt.help "Disable colored outputs"))
       )
 
 opts :: Opt.ParserInfo KrankOpts
@@ -42,6 +46,13 @@ opts = Opt.info (optionsParser <**> Opt.helper)
 
 main :: IO ()
 main = do
+  canUseColor <- supportsPretty
+
   config <- Opt.execParser opts
 
-  runKrank (codeFilePaths config) (krankConfig config)
+  let
+    kConfig = (krankConfig config) {
+      useColors = useColors (krankConfig config) && canUseColor
+      }
+
+  runKrank (codeFilePaths config) kConfig

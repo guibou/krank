@@ -1,4 +1,5 @@
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE NamedFieldPuns #-}
 
 module Krank (
   runKrank
@@ -21,7 +22,9 @@ processFile filePath = do
 
   violations <- IT.checkText filePath content
 
-  liftIO $ putStr . unpack . showViolations $ violations
+  KrankConfig{useColors} <- ask
+
+  liftIO $ putStr . unpack . foldMap (showViolation useColors) $ violations
 
 runKrank :: [FilePath] -> KrankConfig -> IO ()
 runKrank paths options = (flip runReaderT) options $ do
