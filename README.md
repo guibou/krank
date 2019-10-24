@@ -17,7 +17,7 @@ default.nix:20:20: info:
   still Open: https://github.com/NixOS/nix/issues/2733
 
 foo.hs:67:11: error:
-  is now Closed: https://github.com/bazelbuild/bazel/issues/6313
+  now Closed: https://github.com/bazelbuild/bazel/issues/6313
 ```
 
 Here `krank` is telling us that our source code links to github
