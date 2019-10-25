@@ -63,20 +63,51 @@ serverDomain Github = "github.com"
 -- serverDomain Gitlab = "gitlab.com"
 
 findAll :: Text -> [(Int, GitIssue)]
-findAll l = go 1 (Text.splitOn "/" l)
+findAll l = go 1 l
   where
-    go :: Int -> [Text] -> [(Int, GitIssue)]
-    go col (scheme:"":domain:repoOwner:repoName:"issues":(Text.span isDigit->(numStr, rest)):xs)
-    -- TODO: handle gitlab
-    -- TODO: handle correct offset for "http:"
-      | (("https:" `Text.isSuffixOf` scheme || "http:" `Text.isSuffixOf` scheme)) && not (Text.null numStr) && (domain == "github.com" || domain == "www.github.com") =
-         (col + Text.length scheme - 6, GitIssue Github repoOwner repoName (read (Text.unpack numStr))) : go (col + Text.length scheme + Text.length domain + Text.length repoOwner + Text.length repoName + Text.length "issues" + Text.length numStr + 6) (rest:xs)
-    go col (domain:repoOwner:repoName:"issues":(Text.span isDigit->(numStr, rest)):xs)
-    -- TODO: handle gitlab
-      | not (Text.null numStr) && (domain == "github.com" || domain == "www.github.com") =
-         (col, GitIssue Github repoOwner repoName (read (Text.unpack numStr))) : go (col + Text.length domain + Text.length repoOwner + Text.length repoName + Text.length "issues" + Text.length numStr + 6) (rest:xs)
-    go col (skipped:xs) = go (col + Text.length skipped + 1) xs
-    go _ [] = []
+    domain = "github.com"
+    domainLength = Text.length domain
+    issues = "/issues/"
+    issuesLength = Text.length issues
+
+    go :: Int -> Text -> [(Int, GitIssue)]
+    go _ "" = []
+
+    -- We look for "/issues/", potential github/gitlab urls are around
+    go !col t = case Text.breakOn issues t of
+      -- We did not found "/issues/"
+      (_, "") -> []
+
+      -- We found "/issues/". prefix contains what's before, and suffix contains what's after "/issues/"
+      (prefix, Text.drop issuesLength -> suffix) -> let
+        -- Read a number after
+        (numStr, leftover) = Text.span isDigit suffix
+
+        -- Read until the previous "/"
+        (Text.dropEnd 1 -> prefix', repoName) = Text.breakOnEnd "/" prefix
+
+        -- Read until the previous "/"
+        -- endsByDomain contain the part of the prefix which ends by the (optional) http schemes and the domain name
+        (Text.dropEnd 1 -> endsByDomain, repoOwner) = Text.breakOnEnd "/" prefix'
+        in
+
+        -- We have a value !
+        if not (Text.null numStr) && domain `Text.isSuffixOf` endsByDomain
+        then let
+          issueOffset = Text.length prefix + col
+
+          schemeWWW = Text.dropEnd domainLength endsByDomain
+
+          schemeOffset
+            | "https://www." `Text.isSuffixOf` schemeWWW = 12
+            | "https://" `Text.isSuffixOf` schemeWWW = 8
+            | "http://www." `Text.isSuffixOf` schemeWWW = 11
+            | "http://" `Text.isSuffixOf` schemeWWW = 7
+            | otherwise = 0
+          -- Hardcoded values:
+          -- 2: number of / before /issues/
+          in (issueOffset - Text.length repoOwner - Text.length repoName - 2 - schemeOffset - domainLength, GitIssue Github repoOwner repoName (read (Text.unpack numStr))) : go (issueOffset + issuesLength + Text.length numStr) leftover
+        else go col leftover
 
 extractIssues
   :: FilePath
