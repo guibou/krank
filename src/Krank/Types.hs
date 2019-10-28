@@ -8,7 +8,7 @@ module Krank.Types (
 import Data.Text (Text)
 import Text.Megaparsec (SourcePos)
 
-newtype GithubKey = GithubKey String
+newtype GithubKey = GithubKey Text
 
 data ViolationLevel = Info | Warning | Error deriving (Show)
 
