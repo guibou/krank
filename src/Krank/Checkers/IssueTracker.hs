@@ -122,7 +122,7 @@ tryRestIssue url = do
       Just (GithubKey token) -> Req.oAuth2Token (Text.Encoding.encodeUtf8 token)
       Nothing -> mempty
     gitlabHeader = case mGitlabKey of
-      Just (GitlabKey token) -> Req.header "PRIVATE-TOKEN" (BSU.fromString token)
+      Just (GitlabKey token) -> Req.header "PRIVATE-TOKEN" (Text.Encoding.encodeUtf8 token)
       Nothing -> mempty
 
   Req.runReq Req.defaultHttpConfig $ do
