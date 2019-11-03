@@ -111,24 +111,17 @@ issueUrl issue = case server issue of
   Gitlab -> Req.https "gitlab.com" Req./: "api" Req./: "v4" Req./: "projects" Req./: [fmt|{owner issue}/{repo issue}|] Req./: "issues" Req./~ issueNum issue
 
 -- try Issue can fail, on non-2xx HTTP response
-tryRestIssue :: Req.Url 'Req.Https
+tryRestIssue :: Localized GitIssue
              -> ReaderT KrankConfig IO Value
-tryRestIssue url = do
-  mGithubKey <- githubKey <$> ask
-  mGitlabKey <- gitlabKey <$> ask
-  let
-    authHeaders = case mGithubKey of
-      Just (GithubKey token) -> Req.oAuth2Token (Text.Encoding.encodeUtf8 token)
-      Nothing -> mempty
-    gitlabHeader = case mGitlabKey of
-      Just (GitlabKey token) -> Req.header "PRIVATE-TOKEN" (Text.Encoding.encodeUtf8 token)
-      Nothing -> mempty
+tryRestIssue locIssue = do
+  let issue = unLocalized locIssue
+  let url = issueUrl issue
+  headers <- headersFor issue
 
   Req.runReq Req.defaultHttpConfig $ do
     r <- Req.req Req.GET url Req.NoReqBody Req.jsonResponse (
       Req.header "User-Agent" "krank"
-      <> authHeaders
-      <> gitlabHeader)
+      <> headers)
     pure $ Req.responseBody r
 
 headersFor :: GitIssue
@@ -144,14 +137,14 @@ headersFor issue = do
       Just (GitlabKey token) -> pure $ Req.header "PRIVATE-TOKEN" (Text.Encoding.encodeUtf8 token)
       Nothing -> pure mempty
 
-httpExcHandler :: Req.Url 'Req.Https
+httpExcHandler :: Localized GitIssue
                -> Req.HttpException
                -> ReaderT KrankConfig IO Value
-httpExcHandler url _ = pure . AesonT.object $ [("error", AesonT.String . pack . show $ url)]
+httpExcHandler issue _ = pure . AesonT.object $ [("error", AesonT.String . pack . show $ issueUrl . unLocalized $ issue)]
 
-restIssue :: Req.Url 'Req.Https
+restIssue :: Localized GitIssue
           -> ReaderT KrankConfig IO Value
-restIssue url = catch (tryRestIssue url) (httpExcHandler url)
+restIssue issue = catch (tryRestIssue issue) (httpExcHandler issue)
 
 statusParser :: Value
             -> Either Text IssueStatus
@@ -179,8 +172,7 @@ errorParser o = do
 gitIssuesWithStatus :: [Localized GitIssue]
                     -> ReaderT KrankConfig IO [Either (Text, Localized GitIssue) GitIssueWithStatus]
 gitIssuesWithStatus issues = do
-  let urls = issueUrl . unLocalized <$> issues
-  statuses <- mapM restIssue urls
+  statuses <- mapM restIssue issues
   pure $ zipWith f issues (fmap statusParser statuses)
     where
       f issue (Left err) = Left (err, issue)
@@ -207,8 +199,7 @@ checkText :: FilePath
 checkText path t = do
   let issues = extractIssues path t
 
-  isDryRun <- dryRun <$> ask
-
+  isDryRun <- asks dryRun
   if isDryRun
     then pure $ fmap (\issue -> Violation {
                          checker = issuePrintUrl . unLocalized $ issue,
