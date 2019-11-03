@@ -149,9 +149,9 @@ statusParser (AesonT.Object o) = do
   readState state
     where
       readState (AesonT.Success status) = case status of
-        "closed" -> Right Closed
-        "open"   -> Right Open
-        "opened" -> Right Open
+        "closed" -> Right Closed        -- Both Gitlab and Github use the same keyword for closed
+        "open"   -> Right Open          -- Github uses the 'open' status
+        "opened" -> Right Open          -- Gitlab uses the 'opened' status
         _        -> Left [fmt|Could not parse status '{status}'|]
       readState (AesonT.Error _) = Left $ errorParser o
 statusParser _ = Left "invalid JSON"
