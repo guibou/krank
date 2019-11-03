@@ -14,7 +14,6 @@ module Krank.Checkers.IssueTracker (
   , checkText
   , extractIssues
   , githubParser
-  -- , gitlabRE
   , gitRepoParser
   ) where
 
@@ -109,7 +108,7 @@ issueUrl :: GitIssue
          -> Req.Url 'Req.Https
 issueUrl issue = case server issue of
   Github -> Req.https "api.github.com" Req./: "repos" Req./: owner issue Req./: repo issue Req./: "issues" Req./~ issueNum issue
-  Gitlab -> Req.https "gitlab.com" Req./: "api" Req./: "v4" Req./: "projects" Req./: ([fmt|{owner issue}/{repo issue}|]) Req./: "issues" Req./~ issueNum issue
+  Gitlab -> Req.https "gitlab.com" Req./: "api" Req./: "v4" Req./: "projects" Req./: [fmt|{owner issue}/{repo issue}|] Req./: "issues" Req./~ issueNum issue
 
 -- try Issue can fail, on non-2xx HTTP response
 tryRestIssue :: Req.Url 'Req.Https
@@ -132,6 +131,18 @@ tryRestIssue url = do
       <> gitlabHeader)
     pure $ Req.responseBody r
 
+headersFor :: GitIssue
+           -> ReaderT KrankConfig IO (Req.Option 'Req.Https)
+headersFor issue = do
+  mGithubKey <- asks githubKey
+  mGitlabKey <- asks gitlabKey
+  case server issue of
+    Github -> case mGithubKey of
+      Just (GithubKey token) -> pure $ Req.oAuth2Token (Text.Encoding.encodeUtf8 token)
+      Nothing -> pure mempty
+    Gitlab -> case mGitlabKey of
+      Just (GitlabKey token) -> pure $ Req.header "PRIVATE-TOKEN" (Text.Encoding.encodeUtf8 token)
+      Nothing -> pure mempty
 
 httpExcHandler :: Req.Url 'Req.Https
                -> Req.HttpException
