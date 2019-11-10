@@ -102,7 +102,29 @@ extractIssues filePath toCheck = case parse (findAllCap patterns) filePath toChe
   Right res -> map snd $ rights res
   where
     patterns = localized $ choice [
-      githubParser
+      -- `try` is important here and should appears before all the
+      -- cases of the choices but the last one.
+
+      -- imagine that you are parsing "(http://)?(github.com|gitlab.com)"
+      -- and your input is http://gitlab.com
+      -- it will first try the `githubParser` and match "http://",
+      -- then it will fail with "gitlab.com" not being equal to
+      -- "github.com". However it has already consumed a bit of the
+      -- input string hence megaparsec will fail.
+
+      -- This is especially misleading in our context because
+      -- `findAllCap` will then try the parser on the tails of the
+      -- input: ttp://gitlab.com, tp://gitlab.com, p://gitlab.com up
+      -- until it tries on gitlab.com/...
+
+      -- This input is different. It will first be tested against the
+      -- `githubParser` expression. It won't find an "http" prefix and
+      -- will directly switch to the match of "gitub.com", which will
+      -- fail after consuming the prefix "gi". BUT `string` comes with
+      -- a builtin `try`, which will reset the parser to the beginning
+      -- of the input and then try the `gitlabParser`, which will
+      -- succeed.
+      try githubParser
       , gitlabParser
       ]
 

@@ -88,5 +88,5 @@ spec =
         |]
         match `shouldMatchList` [
           Localized (SourcePos "localFile" (mkPos 1) (mkPos 1)) $ GitIssue Github "guibou" "krank" 2
-          , Localized (SourcePos "localFile" (mkPos 3) (mkPos 17)) $ GitIssue Gitlab "gitlab-org" "gitlab-foss" 67390
+          , Localized (SourcePos "localFile" (mkPos 3) (mkPos 9)) $ GitIssue Gitlab "gitlab-org" "gitlab-foss" 67390
           , Localized (SourcePos "localFile" (mkPos 4) (mkPos 25)) $ GitIssue Github "guibou" "krank" 1 ]
