@@ -65,12 +65,6 @@ spec =
         let match = "github.com/guibou/krank/issues/" =~ githubParser
         match `shouldBe` Nothing
 
-    -- describe "#gitlabRE" $
-    --   it "handles full https url" $ do
-    --     let match = "https://gitlab.com/gitlab-org/gitlab-foss/issues/67390" =~ gitlabRE
-    --     match `shouldBe` (Just $ GitIssue Gitlab "gitlab-org" "gitlab-foss" 67390)
-
-    describe "#githubParser" $
       it "handles full https url" $ do
         let match = "https://github.com/guibou/krank/issues/2" =~ githubParser
         match `shouldBe` (Just $ GitIssue Github "guibou" "krank" 2)
