@@ -13,6 +13,7 @@ import Control.Exception.Safe
 import PyF
 import System.IO (stderr)
 import qualified Data.Text.IO as Text.IO
+import qualified Data.ByteString
 
 import Krank.Formatter
 
@@ -21,7 +22,7 @@ processFile :: FilePath      -- ^ the file to analyze
 processFile filePath = do
   KrankConfig{useColors} <- ask
 
-  content <- liftIO $ Text.IO.readFile filePath
+  content <- liftIO $ Data.ByteString.readFile filePath
   violations <- IT.checkText filePath content
   liftIO $ Text.IO.putStr . foldMap (showViolation useColors) $ violations
 

@@ -22,15 +22,14 @@ import Control.Exception.Safe (catch)
 import Data.Aeson (Value, (.:))
 import qualified Data.Aeson.Types as AesonT
 import Data.Text (Text, pack)
-import Data.Text.Read (decimal)
 import qualified Data.Text.Encoding as Text.Encoding
 import qualified Network.HTTP.Req as Req
 import PyF (fmt)
 
 import Control.Monad.Reader
 import Text.Regex.PCRE.Heavy
-import Data.Text.Internal.Search
-import qualified  Data.Text as Text
+import qualified Data.ByteString.Char8 as ByteString
+import Data.ByteString.Char8 (ByteString)
 
 
 import Krank.Types
@@ -69,15 +68,15 @@ gitRepoRe :: Regex
 gitRepoRe = [re|(?:https?://)?(?:www.)?(github.com|gitlab.com)/([^/]+)/([^/]+)/issues/([0-9]+)|]
 
 -- | Extract all issues on one line and returns a list of the raw text associated with an issue
-extractIssuesOnALine :: Text -> [(Text, GitIssue)]
+extractIssuesOnALine :: ByteString -> [(ByteString, GitIssue)]
 extractIssuesOnALine lineContent = map f (scan gitRepoRe lineContent)
       where
-        f (match, [domain, owner, repo, decimal -> Right (issueNo, _)]) = (match, GitIssue provider owner repo issueNo)
+        f (match, [domain, owner, repo, ByteString.readInt -> Just (issueNo, _)]) = (match, GitIssue provider (Text.Encoding.decodeUtf8 owner) (Text.Encoding.decodeUtf8 repo) issueNo)
           where
             provider
               | domain == "github.com" = Github
               | domain == "gitlab.com" = Gitlab
-              | otherwise = error [fmt|Impossible case, update the guard with: {domain}|]
+              | otherwise = error [fmt|Impossible case, update the guard with: {ByteString.unpack domain}|]
 
         -- This case seems impossible, the reasons for pattern match issues are:
         --  A number of items different than 4 in the list: there is only 4 matching groups in the regex
@@ -86,17 +85,22 @@ extractIssuesOnALine lineContent = map f (scan gitRepoRe lineContent)
         f res = error ("Error: impossible match" <> show res)
 
 -- | Extract all issues correctly localized
+-- Note: we use 'ByteString' internally. This way we do not have to
+-- care about the possible encoding of the input files.
+-- In programming world, we mostly use ascii variants. This gives a
+-- few performance improvement compared to initially converting
+-- everything to 'Text' and search on it.
 extractIssues
   :: FilePath
   -- ^ Path of the file
-  -> Text
+  -> ByteString
   -- ^ Content of the file
   -> [Localized GitIssue]
-extractIssues filePath toCheck = concat (zipWith extract [1..] (Text.lines toCheck))
+extractIssues filePath toCheck = concat (zipWith extract [1..] (ByteString.lines toCheck))
   where
     extract lineNo lineContent = map f (extractIssuesOnALine lineContent)
       where
-        f (match, gitIssue) = Localized (SourcePos filePath lineNo (1 + (head $ Data.Text.Internal.Search.indices match lineContent))) gitIssue
+        f (match, gitIssue) = Localized (SourcePos filePath lineNo (1 + (ByteString.length $ fst $ ByteString.breakSubstring match lineContent))) gitIssue
 
 -- Supports only github for the moment
 issueUrl :: GitIssue
@@ -189,7 +193,7 @@ issuePrintUrl :: GitIssue -> Text
 issuePrintUrl GitIssue{owner, repo, server, issueNum} = [fmt|https://{serverDomain server}/{owner}/{repo}/issues/{issueNum}|]
 
 checkText :: FilePath
-          -> Text
+          -> ByteString
           -> ReaderT KrankConfig IO [Violation]
 checkText path t = do
   let issues = extractIssues path t

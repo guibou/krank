@@ -10,9 +10,9 @@ import Test.Hspec
 
 import Krank.Checkers.IssueTracker
 import Krank.Types
-import Data.Text
+import Data.ByteString.Char8 (ByteString)
 
-check :: Text -> Maybe GitIssue
+check :: ByteString -> Maybe GitIssue
 check a = case extractIssuesOnALine a of
   [(_, x)] -> Just x
   _ -> Nothing
