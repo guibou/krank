@@ -14,7 +14,10 @@ module Krank.Checkers.IssueTracker (
   , checkText
   , extractIssues
   , githubParser
+  , gitlabParser
   , gitRepoParser
+  , localized
+  , serverDomain
   ) where
 
 import Control.Applicative ((*>), optional)
