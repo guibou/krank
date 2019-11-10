@@ -27,8 +27,7 @@ library
                        , req >= 2.1.0 && < 2.2
                        , text >= 1.2.3 && < 1.3
                        , unordered-containers >= 0.2.10 && < 0.2.11
-                       , replace-megaparsec
-                       , megaparsec
+                       , pcre-heavy
                        , mtl
                        , safe-exceptions
                        , pretty-terminal
@@ -46,7 +45,8 @@ test-suite krank-test
                        , hspec >= 2.7 && < 2.8
                        , PyF >= 0.8.1.0 && < 0.9
                        , krank
-                       , megaparsec
+                       , pcre-heavy
+                       , text
   ghc-options:         -Wall -threaded -rtsopts -with-rtsopts=-N
   default-language:    Haskell2010
 

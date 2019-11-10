@@ -9,7 +9,6 @@ module Krank.Formatter (
 
 import Data.Text (Text)
 import PyF (fmt)
-import Text.Megaparsec.Pos (sourcePosPretty)
 import System.Console.Pretty
 
 import Krank.Types
@@ -19,7 +18,7 @@ showViolation
   -> Violation
   -> Text
 showViolation useColors Violation{checker, location, level, message} = [fmt|
-{sourcePosPretty location}: {showViolationLevel useColors level}:
+{showSourcePos location}: {showViolationLevel useColors level}:
   {message}: {checker}
 |]
 
@@ -32,3 +31,7 @@ showViolationLevel enableColor = \case
     colorized c
       | enableColor = style Bold . color c
       | otherwise = id
+
+
+showSourcePos :: SourcePos -> String
+showSourcePos (SourcePos path line column) = [fmt|{path}:{line}:{column}|]

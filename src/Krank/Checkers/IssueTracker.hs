@@ -1,4 +1,3 @@
-{-# LANGUAGE ApplicativeDo #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -13,12 +12,11 @@ module Krank.Checkers.IssueTracker (
   , Localized(..)
   , checkText
   , extractIssues
-  , gitRepoParser
-  , localized
+  , gitRepoRe
   , serverDomain
+  , extractIssuesOnALine
   ) where
 
-import Control.Applicative ((*>), optional)
 import Control.Exception.Safe (catch)
 import Data.Aeson (Value, (.:))
 import qualified Data.Aeson.Types as AesonT
@@ -27,13 +25,11 @@ import qualified Data.Text.Encoding as Text.Encoding
 import qualified Network.HTTP.Req as Req
 import PyF (fmt)
 
-import Replace.Megaparsec
-import Text.Megaparsec hiding (token)
-import Text.Megaparsec.Char
-import Text.Megaparsec.Char.Lexer (decimal)
-import Data.Void
-import Data.Either (rights)
 import Control.Monad.Reader
+import Text.Regex.PCRE.Heavy
+import Data.Text.Internal.Search
+import qualified  Data.Text as Text
+
 
 import Krank.Types
 
@@ -48,9 +44,6 @@ data Localized t = Localized
   { location :: SourcePos
   , unLocalized :: t
   } deriving (Show, Eq)
-
-localized :: Parser t -> Parser (Localized t)
-localized p = Localized <$> getSourcePos <*> p
 
 data GitIssue = GitIssue {
   server :: GitServer,
@@ -69,33 +62,36 @@ serverDomain :: GitServer
 serverDomain Github = "github.com"
 serverDomain Gitlab = "gitlab.com"
 
-type Parser t = Parsec Void String t
+-- | This regex represents a github/gitlab issue URL
+gitRepoRe :: Regex
+gitRepoRe = [re|(?:https?://)?(?:www.)?(github.com|gitlab.com)/([^/]+)/([^/]+)/issues/([0-9]+)|]
 
-gitRepoParser :: Parser GitIssue
-gitRepoParser = do
-  optional ("http" *> optional (single 's') *> "://")
-  optional "www."
-  gitServer <- choice [
-    Github <$ (string $ serverDomain Github),
-    Gitlab <$ (string $ serverDomain Gitlab)
-    ]
-  single '/'
-  repoOwner <- takeWhile1P Nothing ('/'/=)
-  single '/'
-  repoName <- takeWhile1P Nothing ('/'/=)
-  "/issues/"
-  issueNum <- decimal
-  return $ GitIssue gitServer (pack repoOwner) (pack repoName) issueNum
+-- | Extract all issues on one line and returns a list of the raw text associated with an issue
+extractIssuesOnALine :: Text -> [(Text, GitIssue)]
+extractIssuesOnALine lineContent = map f (scan gitRepoRe lineContent)
+      where
+        f (match, [domain, owner, repo, issueNoStr]) = (match, GitIssue provider owner repo (read (Text.unpack issueNoStr)))
+          where
+            provider
+              | domain == "github.com" = Github
+              | domain == "gitlab.com" = Gitlab
+              | otherwise = error [fmt|Impossible case, update the guard with: {domain}|]
 
+        -- This case seems impossible, there is only 4 matching groups in the regex
+        f res = error ("Error: impossible match" <> show res)
+
+-- | Extract all issues correctly localized
 extractIssues
   :: FilePath
+  -- ^ Path of the file
   -> String
+  -- ^ Content of the file
   -> [Localized GitIssue]
-extractIssues filePath toCheck = case parse (findAllCap patterns) filePath toCheck of
-  Left _ -> []
-  Right res -> map snd $ rights res
+extractIssues filePath toCheck = concat (zipWith extract [1..] (Text.lines (Text.pack toCheck)))
   where
-    patterns = localized $ gitRepoParser
+    extract lineNo lineContent = map f (extractIssuesOnALine lineContent)
+      where
+        f (match, gitIssue) = Localized (SourcePos filePath lineNo (1 + (head $ Data.Text.Internal.Search.indices match lineContent))) gitIssue
 
 -- Supports only github for the moment
 issueUrl :: GitIssue

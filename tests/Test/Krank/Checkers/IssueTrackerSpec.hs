@@ -9,13 +9,13 @@ import PyF (fmt)
 import Test.Hspec
 
 import Krank.Checkers.IssueTracker
-import Text.Megaparsec (parseMaybe, Parsec)
-import Data.Void
-import Text.Megaparsec.Pos (SourcePos(..), mkPos)
+import Krank.Types
+import Data.Text
 
--- | Alias for fast parsing
-(=~) :: String -> Parsec Void String GitIssue -> Maybe GitIssue
-url =~ parser = parseMaybe parser url
+check :: Text -> Maybe GitIssue
+check a = case extractIssuesOnALine a of
+  [(_, x)] -> Just x
+  _ -> Nothing
 
 giturlTests :: GitServer -> Spec
 giturlTests domain = do
@@ -23,51 +23,51 @@ giturlTests domain = do
     domainName = serverDomain domain
 
   it "handles full https url" $ do
-    let match  = [fmt|https://{domainName}/guibou/krank/issues/1|] =~ gitRepoParser
+    let match = check [fmt|https://{domainName}/guibou/krank/issues/1|]
     match `shouldBe` (Just $ GitIssue domain "guibou" "krank" 1)
 
   it "handles full http url" $ do
-    let match  = [fmt|http://{domainName}/guibou/krank/issues/1|] =~ gitRepoParser
+    let match = check [fmt|http://{domainName}/guibou/krank/issues/1|]
     match `shouldBe` (Just $ GitIssue domain "guibou" "krank" 1)
 
   it "handles short url - no protocol" $ do
-    let match  = [fmt|{domainName}/guibou/krank/issues/1|] =~ gitRepoParser
+    let match = check [fmt|{domainName}/guibou/krank/issues/1|]
     match `shouldBe` (Just $ GitIssue domain "guibou" "krank" 1)
 
   it "accepts www in url" $ do
-    let match  = [fmt|https://www.{domainName}/guibou/krank/issues/1|] =~ gitRepoParser
+    let match = check [fmt|https://www.{domainName}/guibou/krank/issues/1|]
     match `shouldBe` (Just $ GitIssue domain "guibou" "krank" 1)
 
   it "accepts www in url - no protocol" $ do
-    let match  = [fmt|www.{domainName}/guibou/krank/issues/1|] =~ gitRepoParser
+    let match = check [fmt|www.{domainName}/guibou/krank/issues/1|]
     match `shouldBe` (Just $ GitIssue domain "guibou" "krank" 1)
 
   it "fails if the issue number is not an int" $ do
-    let match  = [fmt|{domainName}/guibou/krank/issues/foo|] =~ gitRepoParser
+    let match = check [fmt|{domainName}/guibou/krank/issues/foo|]
     match `shouldBe` Nothing
 
   it "fails if there are too many components in the path" $ do
-    let match  = [fmt|{domainName}/guibou/krank/should_not_be_here/issues/1|] =~ gitRepoParser
+    let match = check [fmt|{domainName}/guibou/krank/should_not_be_here/issues/1|]
     match `shouldBe` Nothing
 
   it "fails if github not in path" $ do
-    let match  = [fmt|google.com/guibou/krank/issues/1|] =~ gitRepoParser
+    let match = check [fmt|google.com/guibou/krank/issues/1|]
     match `shouldBe` Nothing
 
   it "fails if not a github issue" $ do
-    let match  = [fmt|{domainName}/guibou/krank/branches/1|] =~ gitRepoParser
+    let match = check [fmt|{domainName}/guibou/krank/branches/1|]
     match `shouldBe` Nothing
 
   it "fails on partial match" $ do
-    let match  = [fmt|{domainName}/guibou/krank/|] =~ gitRepoParser
+    let match = check [fmt|{domainName}/guibou/krank/|]
     match `shouldBe` Nothing
 
   it "fails on partial match (just missing the issue number)" $ do
-    let match  = [fmt|{domainName}/guibou/krank/issues/|] =~ gitRepoParser
+    let match = check [fmt|{domainName}/guibou/krank/issues/|]
     match `shouldBe` Nothing
 
   it "handles full https url" $ do
-    let match  = [fmt|https://{domainName}/guibou/krank/issues/2|] =~ gitRepoParser
+    let match = check [fmt|https://{domainName}/guibou/krank/issues/2|]
     match `shouldBe` (Just $ GitIssue domain "guibou" "krank" 2)
 
 spec :: Spec
@@ -87,6 +87,6 @@ spec =
         and more github https://github.com/guibou/krank/issues/1
         |]
         match `shouldMatchList` [
-          Localized (SourcePos "localFile" (mkPos 1) (mkPos 1)) $ GitIssue Github "guibou" "krank" 2
-          , Localized (SourcePos "localFile" (mkPos 3) (mkPos 9)) $ GitIssue Gitlab "gitlab-org" "gitlab-foss" 67390
-          , Localized (SourcePos "localFile" (mkPos 4) (mkPos 25)) $ GitIssue Github "guibou" "krank" 1 ]
+          Localized (SourcePos "localFile" 1 1) $ GitIssue Github "guibou" "krank" 2
+          , Localized (SourcePos "localFile" 3 9) $ GitIssue Gitlab "gitlab-org" "gitlab-foss" 67390
+          , Localized (SourcePos "localFile" 4 25) $ GitIssue Github "guibou" "krank" 1 ]
