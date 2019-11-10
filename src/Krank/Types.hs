@@ -1,5 +1,6 @@
 module Krank.Types (
   GithubKey(..)
+  , GitlabKey(..)
   , Violation(..)
   , ViolationLevel(..)
   , KrankConfig(..)
@@ -9,6 +10,7 @@ import Data.Text (Text)
 import Text.Megaparsec (SourcePos)
 
 newtype GithubKey = GithubKey Text
+newtype GitlabKey = GitlabKey Text
 
 data ViolationLevel = Info | Warning | Error deriving (Show)
 
@@ -26,6 +28,8 @@ data Violation = Violation { checker :: Text
 data KrankConfig = KrankConfig
   { githubKey :: Maybe GithubKey
   -- ^ The github oAuth token
+  , gitlabKey :: Maybe GitlabKey
+  -- ^ The gitlab oAuth token
   , dryRun :: Bool
   -- ^ If 'True', all IO operations, such as HTTP requests, are ignored
   , useColors :: Bool

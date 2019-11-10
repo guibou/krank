@@ -13,9 +13,9 @@ module Krank.Checkers.IssueTracker (
   , Localized(..)
   , checkText
   , extractIssues
-  , githubRE
-  -- , gitlabRE
-  , gitRepoRE
+  , gitRepoParser
+  , localized
+  , serverDomain
   ) where
 
 import Control.Applicative ((*>), optional)
@@ -37,8 +37,7 @@ import Control.Monad.Reader
 
 import Krank.Types
 
-data GitServer = Github
-  -- Gitlab -- TODO: enable gitlab again
+data GitServer = Github | Gitlab
   deriving (Eq, Show)
 
 data IssueStatus = Open | Closed deriving (Eq, Show)
@@ -68,22 +67,18 @@ data GitIssueWithStatus = GitIssueWithStatus {
 serverDomain :: GitServer
              -> String
 serverDomain Github = "github.com"
--- serverDomain Gitlab = "gitlab.com"
+serverDomain Gitlab = "gitlab.com"
 
 type Parser t = Parsec Void String t
 
-githubRE :: Parser GitIssue
-githubRE = gitRepoRE Github
-
--- gitlabRE :: Parser GitIssue
--- gitlabRE = gitRepoRE Gitlab
-
-gitRepoRE :: GitServer
-          -> Parser GitIssue
-gitRepoRE gitServer = do
+gitRepoParser :: Parser GitIssue
+gitRepoParser = do
   optional ("http" *> optional (single 's') *> "://")
   optional "www."
-  string (serverDomain gitServer)
+  gitServer <- choice [
+    Github <$ (string $ serverDomain Github),
+    Gitlab <$ (string $ serverDomain Gitlab)
+    ]
   single '/'
   repoOwner <- takeWhile1P Nothing ('/'/=)
   single '/'
@@ -100,43 +95,50 @@ extractIssues filePath toCheck = case parse (findAllCap patterns) filePath toChe
   Left _ -> []
   Right res -> map snd $ rights res
   where
-    patterns = localized $ choice [
-      githubRE
-      -- gitlabRE -- TODO: enable gitlab again
-      ]
+    patterns = localized $ gitRepoParser
 
 -- Supports only github for the moment
 issueUrl :: GitIssue
          -> Req.Url 'Req.Https
 issueUrl issue = case server issue of
   Github -> Req.https "api.github.com" Req./: "repos" Req./: owner issue Req./: repo issue Req./: "issues" Req./~ issueNum issue
-  -- Gitlab -> Req.https "google.com"
+  Gitlab -> Req.https "gitlab.com" Req./: "api" Req./: "v4" Req./: "projects" Req./: [fmt|{owner issue}/{repo issue}|] Req./: "issues" Req./~ issueNum issue
 
 -- try Issue can fail, on non-2xx HTTP response
-tryRestIssue :: Req.Url 'Req.Https
+tryRestIssue :: Localized GitIssue
              -> ReaderT KrankConfig IO Value
-tryRestIssue url = do
-  mGithubKey <- githubKey <$> ask
-  let
-    authHeaders = case mGithubKey of
-      Just (GithubKey token) -> Req.oAuth2Token (Text.Encoding.encodeUtf8 token)
-      Nothing -> mempty
+tryRestIssue locIssue = do
+  let issue = unLocalized locIssue
+  let url = issueUrl issue
+  headers <- headersFor issue
 
   Req.runReq Req.defaultHttpConfig $ do
     r <- Req.req Req.GET url Req.NoReqBody Req.jsonResponse (
       Req.header "User-Agent" "krank"
-      <> authHeaders)
+      <> headers)
     pure $ Req.responseBody r
 
+headersFor :: GitIssue
+           -> ReaderT KrankConfig IO (Req.Option 'Req.Https)
+headersFor issue = do
+  mGithubKey <- asks githubKey
+  mGitlabKey <- asks gitlabKey
+  case server issue of
+    Github -> case mGithubKey of
+      Just (GithubKey token) -> pure $ Req.oAuth2Token (Text.Encoding.encodeUtf8 token)
+      Nothing -> pure mempty
+    Gitlab -> case mGitlabKey of
+      Just (GitlabKey token) -> pure $ Req.header "PRIVATE-TOKEN" (Text.Encoding.encodeUtf8 token)
+      Nothing -> pure mempty
 
-httpExcHandler :: Req.Url 'Req.Https
+httpExcHandler :: Localized GitIssue
                -> Req.HttpException
                -> ReaderT KrankConfig IO Value
-httpExcHandler url _ = pure . AesonT.object $ [("error", AesonT.String . pack . show $ url)]
+httpExcHandler issue _ = pure . AesonT.object $ [("error", AesonT.String . pack . show $ issueUrl . unLocalized $ issue)]
 
-restIssue :: Req.Url 'Req.Https
+restIssue :: Localized GitIssue
           -> ReaderT KrankConfig IO Value
-restIssue url = catch (tryRestIssue url) (httpExcHandler url)
+restIssue issue = catch (tryRestIssue issue) (httpExcHandler issue)
 
 statusParser :: Value
             -> Either Text IssueStatus
@@ -145,8 +147,9 @@ statusParser (AesonT.Object o) = do
   readState state
     where
       readState (AesonT.Success status) = case status of
-        "closed" -> Right Closed
-        "open"   -> Right Open
+        "closed" -> Right Closed        -- Both Gitlab and Github use the same keyword for closed
+        "open"   -> Right Open          -- Github uses the 'open' status
+        "opened" -> Right Open          -- Gitlab uses the 'opened' status
         _        -> Left [fmt|Could not parse status '{status}'|]
       readState (AesonT.Error _) = Left $ errorParser o
 statusParser _ = Left "invalid JSON"
@@ -163,8 +166,7 @@ errorParser o = do
 gitIssuesWithStatus :: [Localized GitIssue]
                     -> ReaderT KrankConfig IO [Either (Text, Localized GitIssue) GitIssueWithStatus]
 gitIssuesWithStatus issues = do
-  let urls = issueUrl . unLocalized <$> issues
-  statuses <- mapM restIssue urls
+  statuses <- mapM restIssue issues
   pure $ zipWith f issues (fmap statusParser statuses)
     where
       f issue (Left err) = Left (err, issue)
@@ -191,8 +193,7 @@ checkText :: FilePath
 checkText path t = do
   let issues = extractIssues path t
 
-  isDryRun <- dryRun <$> ask
-
+  isDryRun <- asks dryRun
   if isDryRun
     then pure $ fmap (\issue -> Violation {
                          checker = issuePrintUrl . unLocalized $ issue,
