@@ -17,67 +17,67 @@ import Text.Megaparsec.Pos (SourcePos(..), mkPos)
 (=~) :: String -> Parsec Void String GitIssue -> Maybe GitIssue
 url =~ parser = parseMaybe parser url
 
-giturlTests :: Parsec Void String GitIssue -> GitServer -> Spec
-giturlTests parser domain = do
+giturlTests :: GitServer -> Spec
+giturlTests domain = do
   let
     domainName = serverDomain domain
 
   it "handles full https url" $ do
-    let match  = [fmt|https://{domainName}/guibou/krank/issues/1|] =~ parser
+    let match  = [fmt|https://{domainName}/guibou/krank/issues/1|] =~ gitRepoParser
     match `shouldBe` (Just $ GitIssue domain "guibou" "krank" 1)
 
   it "handles full http url" $ do
-    let match  = [fmt|http://{domainName}/guibou/krank/issues/1|] =~ parser
+    let match  = [fmt|http://{domainName}/guibou/krank/issues/1|] =~ gitRepoParser
     match `shouldBe` (Just $ GitIssue domain "guibou" "krank" 1)
 
   it "handles short url - no protocol" $ do
-    let match  = [fmt|{domainName}/guibou/krank/issues/1|] =~ parser
+    let match  = [fmt|{domainName}/guibou/krank/issues/1|] =~ gitRepoParser
     match `shouldBe` (Just $ GitIssue domain "guibou" "krank" 1)
 
   it "accepts www in url" $ do
-    let match  = [fmt|https://www.{domainName}/guibou/krank/issues/1|] =~ parser
+    let match  = [fmt|https://www.{domainName}/guibou/krank/issues/1|] =~ gitRepoParser
     match `shouldBe` (Just $ GitIssue domain "guibou" "krank" 1)
 
   it "accepts www in url - no protocol" $ do
-    let match  = [fmt|www.{domainName}/guibou/krank/issues/1|] =~ parser
+    let match  = [fmt|www.{domainName}/guibou/krank/issues/1|] =~ gitRepoParser
     match `shouldBe` (Just $ GitIssue domain "guibou" "krank" 1)
 
   it "fails if the issue number is not an int" $ do
-    let match  = [fmt|{domainName}/guibou/krank/issues/foo|] =~ parser
+    let match  = [fmt|{domainName}/guibou/krank/issues/foo|] =~ gitRepoParser
     match `shouldBe` Nothing
 
   it "fails if there are too many components in the path" $ do
-    let match  = [fmt|{domainName}/guibou/krank/should_not_be_here/issues/1|] =~ parser
+    let match  = [fmt|{domainName}/guibou/krank/should_not_be_here/issues/1|] =~ gitRepoParser
     match `shouldBe` Nothing
 
   it "fails if github not in path" $ do
-    let match  = [fmt|google.com/guibou/krank/issues/1|] =~ parser
+    let match  = [fmt|google.com/guibou/krank/issues/1|] =~ gitRepoParser
     match `shouldBe` Nothing
 
   it "fails if not a github issue" $ do
-    let match  = [fmt|{domainName}/guibou/krank/branches/1|] =~ parser
+    let match  = [fmt|{domainName}/guibou/krank/branches/1|] =~ gitRepoParser
     match `shouldBe` Nothing
 
   it "fails on partial match" $ do
-    let match  = [fmt|{domainName}/guibou/krank/|] =~ parser
+    let match  = [fmt|{domainName}/guibou/krank/|] =~ gitRepoParser
     match `shouldBe` Nothing
 
   it "fails on partial match (just missing the issue number)" $ do
-    let match  = [fmt|{domainName}/guibou/krank/issues/|] =~ parser
+    let match  = [fmt|{domainName}/guibou/krank/issues/|] =~ gitRepoParser
     match `shouldBe` Nothing
 
   it "handles full https url" $ do
-    let match  = [fmt|https://{domainName}/guibou/krank/issues/2|] =~ parser
+    let match  = [fmt|https://{domainName}/guibou/krank/issues/2|] =~ gitRepoParser
     match `shouldBe` (Just $ GitIssue domain "guibou" "krank" 2)
 
 spec :: Spec
 spec =
   context "Test.Krank.Checkers.specIssueTracker" $ do
     describe "#githubParser" $ do
-      giturlTests githubParser Github
+      giturlTests Github
 
     describe "#githlabParser" $ do
-      giturlTests gitlabParser Gitlab
+      giturlTests Gitlab
 
     describe "#extractIssues" $
       it "handles both github and gitlab" $ do
