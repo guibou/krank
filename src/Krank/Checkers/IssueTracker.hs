@@ -5,6 +5,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE ViewPatterns #-}
 
 module Krank.Checkers.IssueTracker (
   GitIssue(..)
@@ -21,6 +22,7 @@ import Control.Exception.Safe (catch)
 import Data.Aeson (Value, (.:))
 import qualified Data.Aeson.Types as AesonT
 import Data.Text (Text, pack)
+import Data.Text.Read (decimal)
 import qualified Data.Text.Encoding as Text.Encoding
 import qualified Network.HTTP.Req as Req
 import PyF (fmt)
@@ -70,24 +72,27 @@ gitRepoRe = [re|(?:https?://)?(?:www.)?(github.com|gitlab.com)/([^/]+)/([^/]+)/i
 extractIssuesOnALine :: Text -> [(Text, GitIssue)]
 extractIssuesOnALine lineContent = map f (scan gitRepoRe lineContent)
       where
-        f (match, [domain, owner, repo, issueNoStr]) = (match, GitIssue provider owner repo (read (Text.unpack issueNoStr)))
+        f (match, [domain, owner, repo, decimal -> Right (issueNo, _)]) = (match, GitIssue provider owner repo issueNo)
           where
             provider
               | domain == "github.com" = Github
               | domain == "gitlab.com" = Gitlab
               | otherwise = error [fmt|Impossible case, update the guard with: {domain}|]
 
-        -- This case seems impossible, there is only 4 matching groups in the regex
+        -- This case seems impossible, the reasons for pattern match issues are:
+        --  A number of items different than 4 in the list: there is only 4 matching groups in the regex
+        --  An invalid `decimal` conversion. That's impossible either
+        --  because the pattern for the issue number is `[0-9]+`
         f res = error ("Error: impossible match" <> show res)
 
 -- | Extract all issues correctly localized
 extractIssues
   :: FilePath
   -- ^ Path of the file
-  -> String
+  -> Text
   -- ^ Content of the file
   -> [Localized GitIssue]
-extractIssues filePath toCheck = concat (zipWith extract [1..] (Text.lines (Text.pack toCheck)))
+extractIssues filePath toCheck = concat (zipWith extract [1..] (Text.lines toCheck))
   where
     extract lineNo lineContent = map f (extractIssuesOnALine lineContent)
       where
@@ -184,7 +189,7 @@ issuePrintUrl :: GitIssue -> Text
 issuePrintUrl GitIssue{owner, repo, server, issueNum} = [fmt|https://{serverDomain server}/{owner}/{repo}/issues/{issueNum}|]
 
 checkText :: FilePath
-          -> String
+          -> Text
           -> ReaderT KrankConfig IO [Violation]
 checkText path t = do
   let issues = extractIssues path t

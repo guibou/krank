@@ -21,7 +21,7 @@ processFile :: FilePath      -- ^ the file to analyze
 processFile filePath = do
   KrankConfig{useColors} <- ask
 
-  content <- liftIO $ readFile filePath
+  content <- liftIO $ Text.IO.readFile filePath
   violations <- IT.checkText filePath content
   liftIO $ Text.IO.putStr . foldMap (showViolation useColors) $ violations
 
