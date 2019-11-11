@@ -1,6 +1,7 @@
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE LambdaCase #-}
 
 module Krank (
   runKrank
@@ -18,16 +19,21 @@ import qualified Data.ByteString
 import Krank.Formatter
 
 processFile :: FilePath      -- ^ the file to analyze
-            -> ReaderT KrankConfig IO ()
+            -> ReaderT KrankConfig IO [Violation]
 processFile filePath = do
-  KrankConfig{useColors} <- ask
-
   content <- liftIO $ Data.ByteString.readFile filePath
   violations <- IT.checkText filePath content
-  liftIO $ Text.IO.putStr . foldMap (showViolation useColors) $ violations
+  pure violations
 
 runKrank :: [FilePath] -> KrankConfig -> IO ()
 runKrank paths options = (flip runReaderT) options $ do
-  (flip mapM_) paths $ \path -> do
-    processFile path `catchAny`
-      (\(SomeException e) -> liftIO $ Text.IO.hPutStrLn stderr [fmt|Error when processing {path}: {show e}|])
+  KrankConfig{useColors} <- ask
+
+  res <- (flip mapM) paths $ \path -> do
+    (Right <$> processFile path) `catchAny`
+      (\(SomeException e) -> pure $ Left [fmt|Error when processing {path}: {show e}|])
+
+
+  liftIO $ (flip mapM_) res $ \case
+    Left err -> Text.IO.hPutStrLn stderr err
+    Right violations -> Text.IO.putStr (foldMap (showViolation useColors) violations)
