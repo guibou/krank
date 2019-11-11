@@ -30,7 +30,7 @@ import Control.Monad.Reader
 import Text.Regex.PCRE.Heavy
 import qualified Data.ByteString.Char8 as ByteString
 import Data.ByteString.Char8 (ByteString)
-
+import Control.Concurrent.Async.Lifted
 
 import Krank.Types
 
@@ -172,7 +172,7 @@ errorParser o = do
 gitIssuesWithStatus :: [Localized GitIssue]
                     -> ReaderT KrankConfig IO [Either (Text, Localized GitIssue) GitIssueWithStatus]
 gitIssuesWithStatus issues = do
-  statuses <- mapM restIssue issues
+  statuses <- mapConcurrently restIssue issues
   pure $ zipWith f issues (fmap statusParser statuses)
     where
       f issue (Left err) = Left (err, issue)

@@ -16,6 +16,7 @@ import System.IO (stderr)
 import qualified Data.Text.IO as Text.IO
 import qualified Data.ByteString
 
+import Control.Concurrent.Async.Lifted
 import Krank.Formatter
 
 processFile :: FilePath      -- ^ the file to analyze
@@ -23,16 +24,19 @@ processFile :: FilePath      -- ^ the file to analyze
 processFile filePath = do
   content <- liftIO $ Data.ByteString.readFile filePath
   violations <- IT.checkText filePath content
-  pure violations
+
+  -- forcing 'violations' to WHNF forces more of the processing to happen inside the thread and
+  -- improves a bit the runtime performances in parallel.
+  -- forcing to Normal Form (with deepseq) does not bring anymore improvement
+  pure $! violations
 
 runKrank :: [FilePath] -> KrankConfig -> IO ()
 runKrank paths options = (flip runReaderT) options $ do
   KrankConfig{useColors} <- ask
 
-  res <- (flip mapM) paths $ \path -> do
+  res <- forConcurrently paths $ \path -> do
     (Right <$> processFile path) `catchAny`
       (\(SomeException e) -> pure $ Left [fmt|Error when processing {path}: {show e}|])
-
 
   liftIO $ (flip mapM_) res $ \case
     Left err -> Text.IO.hPutStrLn stderr err

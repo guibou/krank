@@ -32,6 +32,7 @@ library
                        , safe-exceptions
                        , pretty-terminal
                        , bytestring
+                       , lifted-async
   hs-source-dirs:      src
   ghc-options: -Wall
   default-language:    Haskell2010
@@ -59,4 +60,4 @@ executable krank
                        , pretty-terminal
   hs-source-dirs:      app
   default-language:    Haskell2010
-  ghc-options:         -Wall
+  ghc-options:         -Wall -threaded -rtsopts
