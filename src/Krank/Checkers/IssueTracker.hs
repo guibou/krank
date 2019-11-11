@@ -68,11 +68,12 @@ gitRepoRe :: Regex
 gitRepoRe = [re|(?:https?://)?(?:www.)?(github.com|gitlab.com)/([^/]+)/([^/]+)/issues/([0-9]+)|]
 
 -- | Extract all issues on one line and returns a list of the raw text associated with an issue
-extractIssuesOnALine :: ByteString -> [(ByteString, GitIssue)]
+extractIssuesOnALine :: ByteString -> [(Int, GitIssue)]
 extractIssuesOnALine lineContent = map f (scan gitRepoRe lineContent)
       where
-        f (match, [domain, owner, repo, ByteString.readInt -> Just (issueNo, _)]) = (match, GitIssue provider (Text.Encoding.decodeUtf8 owner) (Text.Encoding.decodeUtf8 repo) issueNo)
+        f (match, [domain, owner, repo, ByteString.readInt -> Just (issueNo, _)]) = (colNo, GitIssue provider (Text.Encoding.decodeUtf8 owner) (Text.Encoding.decodeUtf8 repo) issueNo)
           where
+            colNo = 1 + (ByteString.length $ fst $ ByteString.breakSubstring match lineContent)
             provider
               | domain == "github.com" = Github
               | domain == "gitlab.com" = Gitlab
@@ -100,7 +101,7 @@ extractIssues filePath toCheck = concat (zipWith extract [1..] (ByteString.lines
   where
     extract lineNo lineContent = map f (extractIssuesOnALine lineContent)
       where
-        f (match, gitIssue) = Localized (SourcePos filePath lineNo (1 + (ByteString.length $ fst $ ByteString.breakSubstring match lineContent))) gitIssue
+        f (colNo, gitIssue) = Localized (SourcePos filePath lineNo colNo) gitIssue
 
 -- Supports only github for the moment
 issueUrl :: GitIssue
