@@ -65,7 +65,7 @@ serverDomain Gitlab = "gitlab.com"
 
 -- | This regex represents a github/gitlab issue URL
 gitRepoRe :: Regex
-gitRepoRe = [re|(?:https?://)?(?:www.)?(github.com|gitlab.com)/([^/]+)/([^/]+)/issues/([0-9]+)|]
+gitRepoRe = [re|(?:https?://)?(?:www\.)?(github\.com|gitlab\.com)/([^/]+)/([^/]+)/issues/([0-9]+)|]
 
 -- | Extract all issues on one line and returns a list of the raw text associated with an issue
 extractIssuesOnALine :: ByteString -> [(Int, GitIssue)]

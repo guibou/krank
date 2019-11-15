@@ -26,6 +26,12 @@ giturlTests domain = do
     let match = check [fmt|https://{domainName}/guibou/krank/issues/1|]
     match `shouldBe` (Just $ GitIssue domain "guibou" "krank" 1)
 
+  it "Does not wildcard . in domain name" $ do
+    let match = check [fmt|https://{map replaceDot domainName}/guibou/krank/issues/1|]
+        replaceDot '.' = 'X'
+        replaceDot x = x
+    match `shouldBe` Nothing
+
   it "handles full http url" $ do
     let match = check [fmt|http://{domainName}/guibou/krank/issues/1|]
     match `shouldBe` (Just $ GitIssue domain "guibou" "krank" 1)
@@ -34,9 +40,15 @@ giturlTests domain = do
     let match = check [fmt|{domainName}/guibou/krank/issues/1|]
     match `shouldBe` (Just $ GitIssue domain "guibou" "krank" 1)
 
-  it "accepts www in url" $ do
+  it "accepts www. in url" $ do
     let match = check [fmt|https://www.{domainName}/guibou/krank/issues/1|]
     match `shouldBe` (Just $ GitIssue domain "guibou" "krank" 1)
+
+  -- disabled for now
+  -- whatever happen it will match after wwwX.
+  xit "refuses wwwX" $ do -- to avoid matching dots in url
+    let match = check [fmt|https://wwwX{domainName}/guibou/krank/issues/1|]
+    match `shouldBe` Nothing
 
   it "accepts www in url - no protocol" $ do
     let match = check [fmt|www.{domainName}/guibou/krank/issues/1|]
