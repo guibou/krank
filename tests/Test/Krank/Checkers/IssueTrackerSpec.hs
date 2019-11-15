@@ -44,9 +44,7 @@ giturlTests domain = do
     let match = check [fmt|https://www.{domainName}/guibou/krank/issues/1|]
     match `shouldBe` (Just $ GitIssue domain "guibou" "krank" 1)
 
-  -- disabled for now
-  -- whatever happen it will match after wwwX.
-  xit "refuses wwwX" $ do -- to avoid matching dots in url
+  it "refuses wwwX" $ do -- to avoid matching dots in url
     let match = check [fmt|https://wwwX{domainName}/guibou/krank/issues/1|]
     match `shouldBe` Nothing
 
