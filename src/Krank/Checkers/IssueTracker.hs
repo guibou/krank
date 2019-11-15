@@ -1,4 +1,3 @@
-{-# LANGUAGE ApplicativeDo #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -6,6 +5,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE ViewPatterns #-}
 
 module Krank.Checkers.IssueTracker (
   GitIssue(..)
@@ -13,12 +13,11 @@ module Krank.Checkers.IssueTracker (
   , Localized(..)
   , checkText
   , extractIssues
-  , gitRepoParser
-  , localized
+  , gitRepoRe
   , serverDomain
+  , extractIssuesOnALine
   ) where
 
-import Control.Applicative ((*>), optional)
 import Control.Exception.Safe (catch)
 import Data.Aeson (Value, (.:))
 import qualified Data.Aeson.Types as AesonT
@@ -27,13 +26,11 @@ import qualified Data.Text.Encoding as Text.Encoding
 import qualified Network.HTTP.Req as Req
 import PyF (fmt)
 
-import Replace.Megaparsec
-import Text.Megaparsec hiding (token)
-import Text.Megaparsec.Char
-import Text.Megaparsec.Char.Lexer (decimal)
-import Data.Void
-import Data.Either (rights)
 import Control.Monad.Reader
+import Text.Regex.PCRE.Heavy
+import qualified Data.ByteString.Char8 as ByteString
+import Data.ByteString.Char8 (ByteString)
+
 
 import Krank.Types
 
@@ -48,9 +45,6 @@ data Localized t = Localized
   { location :: SourcePos
   , unLocalized :: t
   } deriving (Show, Eq)
-
-localized :: Parser t -> Parser (Localized t)
-localized p = Localized <$> getSourcePos <*> p
 
 data GitIssue = GitIssue {
   server :: GitServer,
@@ -69,33 +63,45 @@ serverDomain :: GitServer
 serverDomain Github = "github.com"
 serverDomain Gitlab = "gitlab.com"
 
-type Parser t = Parsec Void String t
+-- | This regex represents a github/gitlab issue URL
+gitRepoRe :: Regex
+gitRepoRe = [re|(?:https?://)?(?:www\.)?(github\.com|gitlab\.com)/([^/]+)/([^/]+)/issues/([0-9]+)|]
 
-gitRepoParser :: Parser GitIssue
-gitRepoParser = do
-  optional ("http" *> optional (single 's') *> "://")
-  optional "www."
-  gitServer <- choice [
-    Github <$ (string $ serverDomain Github),
-    Gitlab <$ (string $ serverDomain Gitlab)
-    ]
-  single '/'
-  repoOwner <- takeWhile1P Nothing ('/'/=)
-  single '/'
-  repoName <- takeWhile1P Nothing ('/'/=)
-  "/issues/"
-  issueNum <- decimal
-  return $ GitIssue gitServer (pack repoOwner) (pack repoName) issueNum
+-- | Extract all issues on one line and returns a list of the raw text associated with an issue
+extractIssuesOnALine :: ByteString -> [(Int, GitIssue)]
+extractIssuesOnALine lineContent = map f (scan gitRepoRe lineContent)
+      where
+        f (match, [domain, owner, repo, ByteString.readInt -> Just (issueNo, _)]) = (colNo, GitIssue provider (Text.Encoding.decodeUtf8 owner) (Text.Encoding.decodeUtf8 repo) issueNo)
+          where
+            colNo = 1 + (ByteString.length $ fst $ ByteString.breakSubstring match lineContent)
+            provider
+              | domain == "github.com" = Github
+              | domain == "gitlab.com" = Gitlab
+              | otherwise = error [fmt|Impossible case, update the guard with: {ByteString.unpack domain}|]
 
+        -- This case seems impossible, the reasons for pattern match issues are:
+        --  A number of items different than 4 in the list: there is only 4 matching groups in the regex
+        --  An invalid `decimal` conversion. That's impossible either
+        --  because the pattern for the issue number is `[0-9]+`
+        f res = error ("Error: impossible match" <> show res)
+
+-- | Extract all issues correctly localized
+-- Note: we use 'ByteString' internally. This way we do not have to
+-- care about the possible encoding of the input files.
+-- In programming world, we mostly use ascii variants. This gives a
+-- few performance improvement compared to initially converting
+-- everything to 'Text' and search on it.
 extractIssues
   :: FilePath
-  -> String
+  -- ^ Path of the file
+  -> ByteString
+  -- ^ Content of the file
   -> [Localized GitIssue]
-extractIssues filePath toCheck = case parse (findAllCap patterns) filePath toCheck of
-  Left _ -> []
-  Right res -> map snd $ rights res
+extractIssues filePath toCheck = concat (zipWith extract [1..] (ByteString.lines toCheck))
   where
-    patterns = localized $ gitRepoParser
+    extract lineNo lineContent = map f (extractIssuesOnALine lineContent)
+      where
+        f (colNo, gitIssue) = Localized (SourcePos filePath lineNo colNo) gitIssue
 
 -- Supports only github for the moment
 issueUrl :: GitIssue
@@ -188,7 +194,7 @@ issuePrintUrl :: GitIssue -> Text
 issuePrintUrl GitIssue{owner, repo, server, issueNum} = [fmt|https://{serverDomain server}/{owner}/{repo}/issues/{issueNum}|]
 
 checkText :: FilePath
-          -> String
+          -> ByteString
           -> ReaderT KrankConfig IO [Violation]
 checkText path t = do
   let issues = extractIssues path t
