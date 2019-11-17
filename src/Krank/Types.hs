@@ -16,8 +16,10 @@ newtype GitlabKey = GitlabKey Text deriving (Show)
 newtype GitlabHost = GitlabHost Text deriving (Show, Ord, Eq)
 
 data ViolationLevel = Info | Warning | Error deriving (Show)
-data SourcePos = SourcePos FilePath Int Int
-  deriving (Show, Eq, Ord)
+data SourcePos = SourcePos { file :: FilePath
+                           , lineNumber :: Int
+                           , colNumber :: Int
+                           } deriving (Show, Eq, Ord)
 
 data Violation = Violation { checker :: Text
                              -- ^ A textual representation of the checker. Most of the time that's
