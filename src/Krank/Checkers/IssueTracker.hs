@@ -27,7 +27,7 @@ import qualified Network.HTTP.Req as Req
 import PyF (fmt)
 
 import Control.Monad.Reader
-import Text.Regex.PCRE.Heavy
+import qualified Text.Regex.PCRE.Heavy as RE
 import qualified Data.ByteString.Char8 as ByteString
 import Data.ByteString.Char8 (ByteString)
 import Control.Concurrent.Async.Lifted
@@ -58,14 +58,14 @@ serverDomain Github = "github.com"
 serverDomain (Gitlab (GitlabHost h)) = h
 
 -- | This regex represents a github/gitlab issue URL
-gitRepoRe :: Regex
+gitRepoRe :: RE.Regex
 -- NOTE: \b at the beginning is really import for performances
 -- because it dramatically reduces the number of backtracks
-gitRepoRe = [re|\b(?>https?://)?(?>www\.)?([^/ ]+)/([^/]+)/((?>[^/]+))/issues/([0-9]+)|]
+gitRepoRe = [RE.re|\b(?>https?://)?(?>www\.)?([^/ ]+)/([^/]+)/((?>[^/]+))/issues/([0-9]+)|]
 
 -- | Extract all issues on one line and returns a list of the raw text associated with an issue
 extractIssuesOnALine :: ByteString -> [(Int, GitIssue)]
-extractIssuesOnALine lineContent = map f (scan gitRepoRe lineContent)
+extractIssuesOnALine lineContent = map f (RE.scan gitRepoRe lineContent)
       where
         f (match, [domain, owner, repo, ByteString.readInt -> Just (issueNo, _)]) = (colNo, GitIssue provider (Text.Encoding.decodeUtf8 owner) (Text.Encoding.decodeUtf8 repo) issueNo)
           where
