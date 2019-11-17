@@ -32,6 +32,11 @@ You can check `krank --help` for a list of options.
   as info and Closed *issues* are listed as *error*. Convenient to know
   when to remove workarounds.
 
+# Red herring
+
+If you want to ignore all krank checkers on a given line of code, add `krank:ignore-line` on this
+same line. Krank will then skip this line and not report anything on it
+
 # Misc
 
 - Krank is available on Hackage, but you can also [build it manually](HACKING.md).
