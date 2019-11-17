@@ -1,11 +1,11 @@
-module Krank.Types (
-  GithubKey(..)
-  , GitlabKey(..)
-  , GitlabHost(..)
-  , Violation(..)
-  , ViolationLevel(..)
-  , KrankConfig(..)
-  , SourcePos(..)
+module Krank.Types ( GithubKey(..)
+                   , GitlabHost(..)
+                   , GitlabKey(..)
+                   , Violation(..)
+                   , ViolationLevel(..)
+                   , KrankConfig(..)
+                   , SourcePos(..)
+                   , Localized(..)
   ) where
 
 import Data.Text (Text)
@@ -20,6 +20,13 @@ data SourcePos = SourcePos { file :: FilePath
                            , lineNumber :: Int
                            , colNumber :: Int
                            } deriving (Show, Eq, Ord)
+
+-- | Represents a localized chunk of information
+-- in a file
+data Localized t = Localized
+  { getLocation :: SourcePos
+  , unLocalized :: t
+  } deriving (Show, Eq)
 
 data Violation = Violation { checker :: Text
                              -- ^ A textual representation of the checker. Most of the time that's

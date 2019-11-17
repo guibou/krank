@@ -40,13 +40,6 @@ data GitServer = Github | Gitlab GitlabHost
 
 data IssueStatus = Open | Closed deriving (Eq, Show)
 
--- | Represents a localized chunk of information
--- in a file
-data Localized t = Localized
-  { location :: SourcePos
-  , unLocalized :: t
-  } deriving (Show, Eq)
-
 data GitIssue = GitIssue {
   server :: GitServer,
   owner :: Text,
@@ -211,7 +204,7 @@ checkText path t = do
                          checker = issuePrintUrl . unLocalized $ issue,
                          level = Info,
                          message = ("Dry run"),
-                         location = location (issue :: Localized GitIssue)
+                         location = getLocation (issue :: Localized GitIssue)
                          }) issues
   else do
     issuesWithStatus <- gitIssuesWithStatus issues
@@ -221,11 +214,11 @@ checkText path t = do
           checker = issuePrintUrl . unLocalized $ issue,
           level = Warning,
           message = ("Url could not be reached: " <> err),
-          location = location (issue :: Localized GitIssue)
+          location = getLocation (issue :: Localized GitIssue)
           }
         f (Right issue) = Violation {
           checker = issuePrintUrl (unLocalized . gitIssue $ issue),
           level = issueToLevel issue,
           message = issueToMessage issue,
-          location = location ((gitIssue issue) :: Localized GitIssue)
+          location = getLocation ((gitIssue issue) :: Localized GitIssue)
           }
