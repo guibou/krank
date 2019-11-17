@@ -26,11 +26,11 @@ import qualified Data.Text.Encoding as Text.Encoding
 import qualified Network.HTTP.Req as Req
 import PyF (fmt)
 
-import Control.Monad.Reader
+import Control.Concurrent.Async.Lifted (mapConcurrently)
+import Control.Monad.Reader (ReaderT, asks)
 import qualified Text.Regex.PCRE.Heavy as RE
 import qualified Data.ByteString.Char8 as ByteString
 import Data.ByteString.Char8 (ByteString)
-import Control.Concurrent.Async.Lifted
 import qualified Data.Map as Map
 
 import Krank.Types
