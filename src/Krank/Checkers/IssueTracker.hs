@@ -18,20 +18,19 @@ module Krank.Checkers.IssueTracker (
   , extractIssuesOnALine
   ) where
 
+import Control.Concurrent.Async.Lifted (mapConcurrently)
 import Control.Exception.Safe (catch)
+import Control.Monad.Reader (ReaderT, asks)
 import Data.Aeson (Value, (.:))
 import qualified Data.Aeson.Types as AesonT
+import qualified Data.ByteString.Char8 as ByteString
+import Data.ByteString.Char8 (ByteString)
+import qualified Data.Map as Map
 import Data.Text (Text, pack)
 import qualified Data.Text.Encoding as Text.Encoding
 import qualified Network.HTTP.Req as Req
 import PyF (fmt)
-
-import Control.Concurrent.Async.Lifted (mapConcurrently)
-import Control.Monad.Reader (ReaderT, asks)
 import qualified Text.Regex.PCRE.Heavy as RE
-import qualified Data.ByteString.Char8 as ByteString
-import Data.ByteString.Char8 (ByteString)
-import qualified Data.Map as Map
 
 import Krank.Types
 
