@@ -1,6 +1,7 @@
 module Krank.Types (
   GithubKey(..)
   , GitlabKey(..)
+  , GitlabHost(..)
   , Violation(..)
   , ViolationLevel(..)
   , KrankConfig(..)
@@ -8,9 +9,11 @@ module Krank.Types (
   ) where
 
 import Data.Text (Text)
+import Data.Map (Map)
 
-newtype GithubKey = GithubKey Text
-newtype GitlabKey = GitlabKey Text
+newtype GithubKey = GithubKey Text deriving (Show)
+newtype GitlabKey = GitlabKey Text deriving (Show)
+newtype GitlabHost = GitlabHost Text deriving (Show, Ord, Eq)
 
 data ViolationLevel = Info | Warning | Error deriving (Show)
 data SourcePos = SourcePos FilePath Int Int
@@ -30,10 +33,11 @@ data Violation = Violation { checker :: Text
 data KrankConfig = KrankConfig
   { githubKey :: Maybe GithubKey
   -- ^ The github oAuth token
-  , gitlabKey :: Maybe GitlabKey
+  , gitlabKeys :: Map GitlabHost GitlabKey
   -- ^ The gitlab oAuth token
   , dryRun :: Bool
   -- ^ If 'True', all IO operations, such as HTTP requests, are ignored
   , useColors :: Bool
   -- ^ Use color for formatting
   }
+  deriving (Show)
