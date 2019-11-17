@@ -7,6 +7,7 @@ module Krank (
   runKrank
   ) where
 
+import Krank.Checkers.Ignore (filterViolations)
 import qualified Krank.Checkers.IssueTracker as IT
 import Krank.Types
 import Control.Monad.Reader
@@ -24,11 +25,12 @@ processFile :: FilePath      -- ^ the file to analyze
 processFile filePath = do
   content <- liftIO $ Data.ByteString.readFile filePath
   violations <- IT.checkText filePath content
+  let filtered = filterViolations violations filePath content
 
   -- forcing 'violations' to WHNF forces more of the processing to happen inside the thread and
   -- improves a bit the runtime performances in parallel.
   -- forcing to Normal Form (with deepseq) does not bring anymore improvement
-  pure $! violations
+  pure $! filtered
 
 runKrank :: [FilePath] -> KrankConfig -> IO ()
 runKrank paths options = (flip runReaderT) options $ do
