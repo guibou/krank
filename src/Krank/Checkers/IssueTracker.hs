@@ -31,10 +31,11 @@ import Text.Regex.PCRE.Heavy
 import qualified Data.ByteString.Char8 as ByteString
 import Data.ByteString.Char8 (ByteString)
 import Control.Concurrent.Async.Lifted
+import qualified Data.Map as Map
 
 import Krank.Types
 
-data GitServer = Github | Gitlab
+data GitServer = Github | Gitlab GitlabHost
   deriving (Eq, Show)
 
 data IssueStatus = Open | Closed deriving (Eq, Show)
@@ -59,15 +60,15 @@ data GitIssueWithStatus = GitIssueWithStatus {
 } deriving (Eq, Show)
 
 serverDomain :: GitServer
-             -> String
+             -> Text
 serverDomain Github = "github.com"
-serverDomain Gitlab = "gitlab.com"
+serverDomain (Gitlab (GitlabHost h)) = h
 
 -- | This regex represents a github/gitlab issue URL
 gitRepoRe :: Regex
 -- NOTE: \b at the beginning is really import for performances
 -- because it dramatically reduces the number of backtracks
-gitRepoRe = [re|\b(?:https?://)?(?:www\.)?(github\.com|gitlab\.com)/([^/]+)/([^/]+)/issues/([0-9]+)|]
+gitRepoRe = [re|\b(?>https?://)?(?>www\.)?([^/ ]+)/([^/]+)/((?>[^/]+))/issues/([0-9]+)|]
 
 -- | Extract all issues on one line and returns a list of the raw text associated with an issue
 extractIssuesOnALine :: ByteString -> [(Int, GitIssue)]
@@ -78,8 +79,10 @@ extractIssuesOnALine lineContent = map f (scan gitRepoRe lineContent)
             colNo = 1 + (ByteString.length $ fst $ ByteString.breakSubstring match lineContent)
             provider
               | domain == "github.com" = Github
-              | domain == "gitlab.com" = Gitlab
-              | otherwise = error [fmt|Impossible case, update the guard with: {ByteString.unpack domain}|]
+              -- TODO: We suppose that all other cases are gitlab
+              -- The only thing we risk here is a query with the wrong
+              -- API to an irrelevant host.
+              | otherwise = Gitlab (GitlabHost $ Text.Encoding.decodeUtf8 domain)
 
         -- This case seems impossible, the reasons for pattern match issues are:
         --  A number of items different than 4 in the list: there is only 4 matching groups in the regex
@@ -110,7 +113,7 @@ issueUrl :: GitIssue
          -> Req.Url 'Req.Https
 issueUrl issue = case server issue of
   Github -> Req.https "api.github.com" Req./: "repos" Req./: owner issue Req./: repo issue Req./: "issues" Req./~ issueNum issue
-  Gitlab -> Req.https "gitlab.com" Req./: "api" Req./: "v4" Req./: "projects" Req./: [fmt|{owner issue}/{repo issue}|] Req./: "issues" Req./~ issueNum issue
+  Gitlab (GitlabHost host) -> Req.https host Req./: "api" Req./: "v4" Req./: "projects" Req./: [fmt|{owner issue}/{repo issue}|] Req./: "issues" Req./~ issueNum issue
 
 -- try Issue can fail, on non-2xx HTTP response
 tryRestIssue :: Localized GitIssue
@@ -130,12 +133,13 @@ headersFor :: GitIssue
            -> ReaderT KrankConfig IO (Req.Option 'Req.Https)
 headersFor issue = do
   mGithubKey <- asks githubKey
-  mGitlabKey <- asks gitlabKey
+  mGitlabKeys <- asks gitlabKeys
+
   case server issue of
     Github -> case mGithubKey of
       Just (GithubKey token) -> pure $ Req.oAuth2Token (Text.Encoding.encodeUtf8 token)
       Nothing -> pure mempty
-    Gitlab -> case mGitlabKey of
+    Gitlab host -> case Map.lookup host mGitlabKeys of
       Just (GitlabKey token) -> pure $ Req.header "PRIVATE-TOKEN" (Text.Encoding.encodeUtf8 token)
       Nothing -> pure mempty
 
