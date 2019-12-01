@@ -19,9 +19,7 @@ data IgnoreCommand = IgnoreLine deriving (Show, Eq)
 
 -- | This regex represents a krank ignore marker
 ignoreRe :: RE.Regex
--- NOTE: \b at the beginning is really import for performances
--- because it dramatically reduces the number of backtracks
-ignoreRe = [RE.re|\bkrank:ignore-(line)|]
+ignoreRe = [RE.re|krank:ignore-(line)|]
 -- TODO: support more "ignore" (checker specific, all file, next line)
 
 -- | Extract all issues on one line and returns a list of ignore keyword
