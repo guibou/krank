@@ -36,7 +36,8 @@ jobs:
             - cci-demo-haskell-v1-{{ checksum "stack.yaml" }}
       - run:
           name: Build dependencies
-          command: stack test --only-dependencies
+          # Note: --jobs=1 because else it hit the circle CI memory limit
+          command: stack test --only-dependencies --jobs=1
       - save_cache:
           name: Cache Dependencies
           key: cci-demo-haskell-v1-{{ checksum "stack.yaml" }}-{{ checksum "krank.cabal" }}
@@ -45,13 +46,11 @@ jobs:
             - ".stack-work"
       - run:
           name: Build
-          command: stack test
+          command: stack test --jobs=1
 
 workflows:
   version: 2
   nix_stack:
     jobs:
       - nix
-# Disable stack build, it takes too much memory and time. We'll see for release
-# how it build with stack and push it to lts.
-#      - stack
+      - stack

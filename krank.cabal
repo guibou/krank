@@ -21,7 +21,6 @@ library
                        Krank.Checkers.IssueTracker
                        Krank.Formatter
                        Krank.Types
-
   other-modules:       Utils.Req
 
   build-depends:       base >= 4.9 && < 5.0
@@ -50,8 +49,8 @@ test-suite krank-test
   other-modules:       Test.Krank.Checkers.IssueTrackerSpec
   build-tools:
   build-depends:       base
-                       , hspec >= 2.7 && < 2.8
-                       , PyF >= 0.8.1.0 && < 0.9
+                       , hspec >= 2.7
+                       , PyF >= 0.8.1.0
                        , krank
                        , pcre-heavy
                        , bytestring
@@ -61,8 +60,8 @@ test-suite krank-test
 
 executable krank
   main-is:             Main.hs
-  build-depends:       base >=4.12 && <4.13
-                       , optparse-applicative >= 0.14 && < 0.15
+  build-depends:       base >=4.9
+                       , optparse-applicative >= 0.14
                        , krank
                        , pretty-terminal
                        , pcre-heavy
