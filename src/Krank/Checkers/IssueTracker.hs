@@ -18,20 +18,19 @@ module Krank.Checkers.IssueTracker (
   , extractIssuesOnALine
   ) where
 
+import Control.Concurrent.Async.Lifted (mapConcurrently)
 import Control.Exception.Safe (catch)
+import Control.Monad.Reader (ReaderT, asks)
 import Data.Aeson (Value, (.:))
 import qualified Data.Aeson.Types as AesonT
+import qualified Data.ByteString.Char8 as ByteString
+import Data.ByteString.Char8 (ByteString)
+import qualified Data.Map as Map
 import Data.Text (Text, pack)
 import qualified Data.Text.Encoding as Text.Encoding
 import qualified Network.HTTP.Req as Req
 import PyF (fmt)
-
-import Control.Monad.Reader
-import Text.Regex.PCRE.Heavy
-import qualified Data.ByteString.Char8 as ByteString
-import Data.ByteString.Char8 (ByteString)
-import Control.Concurrent.Async.Lifted
-import qualified Data.Map as Map
+import qualified Text.Regex.PCRE.Heavy as RE
 
 import Krank.Types
 
@@ -39,13 +38,6 @@ data GitServer = Github | Gitlab GitlabHost
   deriving (Eq, Show)
 
 data IssueStatus = Open | Closed deriving (Eq, Show)
-
--- | Represents a localized chunk of information
--- in a file
-data Localized t = Localized
-  { location :: SourcePos
-  , unLocalized :: t
-  } deriving (Show, Eq)
 
 data GitIssue = GitIssue {
   server :: GitServer,
@@ -65,14 +57,14 @@ serverDomain Github = "github.com"
 serverDomain (Gitlab (GitlabHost h)) = h
 
 -- | This regex represents a github/gitlab issue URL
-gitRepoRe :: Regex
+gitRepoRe :: RE.Regex
 -- NOTE: \b at the beginning is really import for performances
 -- because it dramatically reduces the number of backtracks
-gitRepoRe = [re|\b(?>https?://)?(?>www\.)?([^/ ]+)/([^/]+)/((?>[^/]+))/issues/([0-9]+)|]
+gitRepoRe = [RE.re|\b(?>https?://)?(?>www\.)?([^/ ]+)/([^/]+)/((?>[^/]+))/issues/([0-9]+)|]
 
 -- | Extract all issues on one line and returns a list of the raw text associated with an issue
 extractIssuesOnALine :: ByteString -> [(Int, GitIssue)]
-extractIssuesOnALine lineContent = map f (scan gitRepoRe lineContent)
+extractIssuesOnALine lineContent = map f (RE.scan gitRepoRe lineContent)
       where
         f (match, [domain, owner, repo, ByteString.readInt -> Just (issueNo, _)]) = (colNo, GitIssue provider (Text.Encoding.decodeUtf8 owner) (Text.Encoding.decodeUtf8 repo) issueNo)
           where
@@ -211,7 +203,7 @@ checkText path t = do
                          checker = issuePrintUrl . unLocalized $ issue,
                          level = Info,
                          message = ("Dry run"),
-                         location = location (issue :: Localized GitIssue)
+                         location = getLocation (issue :: Localized GitIssue)
                          }) issues
   else do
     issuesWithStatus <- gitIssuesWithStatus issues
@@ -221,11 +213,11 @@ checkText path t = do
           checker = issuePrintUrl . unLocalized $ issue,
           level = Warning,
           message = ("Url could not be reached: " <> err),
-          location = location (issue :: Localized GitIssue)
+          location = getLocation (issue :: Localized GitIssue)
           }
         f (Right issue) = Violation {
           checker = issuePrintUrl (unLocalized . gitIssue $ issue),
           level = issueToLevel issue,
           message = issueToMessage issue,
-          location = location ((gitIssue issue) :: Localized GitIssue)
+          location = getLocation ((gitIssue issue) :: Localized GitIssue)
           }
