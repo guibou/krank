@@ -57,6 +57,17 @@ rec {
   mkdir $out
   '';
 
+  hlint-fix = mkShell {
+    nativeBuildInputs = [haskellPackages.hlint git haskellPackages.apply-refact];
+    shellHook = ''
+      for file in $(git ls-files | grep '\.hs$')
+      do
+        hlint  --refactor --refactor-options='-i' $file
+      done
+      exit 0
+    '';
+  };
+
   ormolu-fix = mkShell {
     nativeBuildInputs = [haskellPackages.ormolu git];
     shellHook = ''

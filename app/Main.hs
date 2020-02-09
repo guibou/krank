@@ -3,7 +3,9 @@
 {-# LANGUAGE ViewPatterns #-}
 
 import Control.Applicative (optional)
+import Control.Monad.Reader
 import qualified Data.Map as Map
+import Data.Semigroup ((<>))
 import qualified Data.Text as Text
 import Krank
 import Krank.Types
@@ -42,12 +44,10 @@ gitlabKeyToParse :: Opt.Parser (Map.Map GitlabHost GitlabKey)
 gitlabKeyToParse =
   Map.fromList
     <$> many
-      ( Opt.option
-          parseGitlabKey
-          ( Opt.long "issuetracker-gitlabhost"
-              <> Opt.metavar "HOST=PERSONAL_GITLAB_KEY"
-              <> Opt.help "A couple of gitlab host and developer key to allow reaching private gitlab repo for the IssueTracker checker. Can be specified multiple times."
-          )
+      ( Opt.option parseGitlabKey $
+          Opt.long "issuetracker-gitlabhost"
+            <> Opt.metavar "HOST=PERSONAL_GITLAB_KEY"
+            <> Opt.help "A couple of gitlab host and developer key to allow reaching private gitlab repo for the IssueTracker checker. Can be specified multiple times."
       )
 
 noColorParse :: Opt.Parser Bool
@@ -89,4 +89,4 @@ main = do
         (krankConfig config)
           { useColors = useColors (krankConfig config) && canUseColor
           }
-  runKrank (codeFilePaths config) kConfig
+  runReaderT (unKrank $ runKrank (codeFilePaths config)) kConfig
