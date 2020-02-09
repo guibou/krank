@@ -19,6 +19,7 @@ library
   exposed-modules:     Krank
                        Krank.Checkers.Ignore
                        Krank.Checkers.IssueTracker
+                       Krank.Checkers.RunReq
                        Krank.Formatter
                        Krank.Types
 

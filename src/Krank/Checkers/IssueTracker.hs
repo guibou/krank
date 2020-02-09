@@ -31,8 +31,10 @@ import qualified Data.Text.Encoding as Text.Encoding
 import qualified Network.HTTP.Req as Req
 import PyF (fmt)
 import qualified Text.Regex.PCRE.Heavy as RE
+import Control.Monad.IO.Class (liftIO)
 
 import Krank.Types
+import Krank.Checkers.RunReq
 
 data GitServer = Github | Gitlab GitlabHost
   deriving (Eq, Show)
@@ -115,11 +117,7 @@ tryRestIssue locIssue = do
   let url = issueUrl issue
   headers <- headersFor issue
 
-  Req.runReq Req.defaultHttpConfig $ do
-    r <- Req.req Req.GET url Req.NoReqBody Req.jsonResponse (
-      Req.header "User-Agent" "krank"
-      <> headers)
-    pure $ Req.responseBody r
+  liftIO $ runRESTRequest url headers
 
 headersFor :: GitIssue
            -> ReaderT KrankConfig IO (Req.Option 'Req.Https)
