@@ -28,6 +28,7 @@ import Data.ByteString.Char8 (ByteString)
 import qualified Data.Map as Map
 import Data.Text (Text, pack)
 import qualified Data.Text.Encoding as Text.Encoding
+import qualified Network.HTTP.Client as Client
 import qualified Network.HTTP.Req as Req
 import PyF (fmt)
 import qualified Text.Regex.PCRE.Heavy as RE
@@ -135,10 +136,22 @@ headersFor issue = do
       Just (GitlabKey token) -> pure $ Req.header "PRIVATE-TOKEN" (Text.Encoding.encodeUtf8 token)
       Nothing -> pure mempty
 
+showHTTPException :: Req.HttpException
+                  -> String
+showHTTPException (Req.VanillaHttpException (Client.HttpExceptionRequest _ resp)) = show resp
+-- Catch all doing a simple and ugly show
+showHTTPException exc = show exc
+
 httpExcHandler :: Localized GitIssue
                -> Req.HttpException
                -> ReaderT KrankConfig IO Value
-httpExcHandler issue _ = pure . AesonT.object $ [("error", AesonT.String . pack . show $ issueUrl . unLocalized $ issue)]
+httpExcHandler issue exc = pure . AesonT.object $ [("error", AesonT.String . pack $
+  [fmt|
+    Error:
+      {(showHTTPException exc)}
+    Requested URL:
+      {(show $ issueUrl . unLocalized $ issue)}
+  |])]
 
 restIssue :: Localized GitIssue
           -> ReaderT KrankConfig IO Value
