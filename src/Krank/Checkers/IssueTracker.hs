@@ -28,12 +28,12 @@ import Data.ByteString.Char8 (ByteString)
 import qualified Data.Map as Map
 import Data.Text (Text, pack)
 import qualified Data.Text.Encoding as Text.Encoding
-import qualified Network.HTTP.Client as Client
 import qualified Network.HTTP.Req as Req
 import PyF (fmt)
 import qualified Text.Regex.PCRE.Heavy as RE
 
 import Krank.Types
+import Utils.Req
 
 data GitServer = Github | Gitlab GitlabHost
   deriving (Eq, Show)
@@ -135,12 +135,6 @@ headersFor issue = do
     Gitlab host -> case Map.lookup host mGitlabKeys of
       Just (GitlabKey token) -> pure $ Req.header "PRIVATE-TOKEN" (Text.Encoding.encodeUtf8 token)
       Nothing -> pure mempty
-
-showHTTPException :: Req.HttpException
-                  -> String
-showHTTPException (Req.VanillaHttpException (Client.HttpExceptionRequest _ resp)) = show resp
--- Catch all doing a simple and ugly show
-showHTTPException exc = show exc
 
 httpExcHandler :: Localized GitIssue
                -> Req.HttpException
