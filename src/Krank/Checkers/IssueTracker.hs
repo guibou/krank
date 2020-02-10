@@ -34,7 +34,6 @@ import qualified Text.Regex.PCRE.Heavy as RE
 import Control.Monad.IO.Class (liftIO)
 
 import Krank.Types
-import Krank.Checkers.RunReq
 
 data GitServer = Github | Gitlab GitlabHost
   deriving (Eq, Show)
@@ -117,7 +116,9 @@ tryRestIssue locIssue = do
   let url = issueUrl issue
   headers <- headersFor issue
 
-  liftIO $ runRESTRequest url headers
+  runRequest <- asks runRESTRequest
+
+  liftIO $ runRequest url headers
 
 headersFor :: GitIssue
            -> ReaderT KrankConfig IO (Req.Option 'Req.Https)

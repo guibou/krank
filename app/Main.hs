@@ -15,6 +15,7 @@ import System.Console.Pretty (supportsPretty)
 
 import Krank
 import Krank.Types
+import Krank.Checkers.RunReq
 
 data KrankOpts = KrankOpts {
   codeFilePaths :: [FilePath],
@@ -59,6 +60,8 @@ optionsParser = KrankOpts
        <*> (Opt.switch $ Opt.long "dry-run"
         <> Opt.help "Perform a dry run. Parse file, but do not execute HTTP requests")
        <*> noColorParse
+      -- Default request runner, it actually do the real request
+       <*> (pure runRESTRequestReq)
       )
 
 opts :: Opt.ParserInfo KrankOpts

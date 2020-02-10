@@ -1,3 +1,4 @@
+{-# LANGUAGE DataKinds #-}
 module Krank.Types ( GithubKey(..)
                    , GitlabHost(..)
                    , GitlabKey(..)
@@ -10,6 +11,8 @@ module Krank.Types ( GithubKey(..)
 
 import Data.Text (Text)
 import Data.Map (Map)
+import qualified Network.HTTP.Req as Req
+import Data.Aeson (Value)
 
 newtype GithubKey = GithubKey Text deriving (Show)
 newtype GitlabKey = GitlabKey Text deriving (Show)
@@ -48,5 +51,6 @@ data KrankConfig = KrankConfig
   -- ^ If 'True', all IO operations, such as HTTP requests, are ignored
   , useColors :: Bool
   -- ^ Use color for formatting
+  , runRESTRequest :: Req.Url 'Req.Https -> Req.Option 'Req.Https -> IO Value
+  -- ^ The function used by Krank to run REST request. Mostly editable so it can be used in pure tests.
   }
-  deriving (Show)
