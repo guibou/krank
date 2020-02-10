@@ -143,8 +143,6 @@ httpExcHandler issue exc = pure . AesonT.object $ [("error", AesonT.String . pac
   [fmt|
     Error:
       {(showHTTPException exc)}
-    Requested URL:
-      {(show $ issueUrl . unLocalized $ issue)}
   |])]
 
 restIssue :: Localized GitIssue
