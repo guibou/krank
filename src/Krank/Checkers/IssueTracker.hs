@@ -69,7 +69,7 @@ extractIssuesOnALine lineContent = map f (RE.scan gitRepoRe lineContent)
       where
         f (match, [domain, owner, repo, ByteString.readInt -> Just (issueNo, _)]) = (colNo, GitIssue provider (Text.Encoding.decodeUtf8 owner) (Text.Encoding.decodeUtf8 repo) issueNo)
           where
-            colNo = 1 + (ByteString.length $ fst $ ByteString.breakSubstring match lineContent)
+            colNo = 1 + ByteString.length (fst $ ByteString.breakSubstring match lineContent)
             provider
               | domain == "github.com" = Github
               -- TODO: We suppose that all other cases are gitlab
@@ -207,7 +207,7 @@ checkText path t = do
     then pure $ fmap (\issue -> Violation {
                          checker = issuePrintUrl . unLocalized $ issue,
                          level = Info,
-                         message = ("Dry run"),
+                         message = "Dry run",
                          location = getLocation (issue :: Localized GitIssue)
                          }) issues
   else do
@@ -217,12 +217,12 @@ checkText path t = do
         f (Left (err, issue)) = Violation {
           checker = issuePrintUrl . unLocalized $ issue,
           level = Warning,
-          message = ("Url could not be reached: " <> err),
+          message = "Url could not be reached: " <> err,
           location = getLocation (issue :: Localized GitIssue)
           }
         f (Right issue) = Violation {
           checker = issuePrintUrl (unLocalized . gitIssue $ issue),
           level = issueToLevel issue,
           message = issueToMessage issue,
-          location = getLocation ((gitIssue issue) :: Localized GitIssue)
+          location = getLocation (gitIssue issue :: Localized GitIssue)
           }

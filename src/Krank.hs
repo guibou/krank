@@ -33,13 +33,13 @@ processFile filePath = do
   pure $! filtered
 
 runKrank :: [FilePath] -> KrankConfig -> IO ()
-runKrank paths options = (flip runReaderT) options $ do
+runKrank paths options = flip runReaderT options $ do
   KrankConfig{useColors} <- ask
 
-  res <- forConcurrently paths $ \path -> do
+  res <- forConcurrently paths $ \path ->
     (Right <$> processFile path) `catchAny`
       (\(SomeException e) -> pure $ Left [fmt|Error when processing {path}: {show e}|])
 
-  liftIO $ (flip mapM_) res $ \case
+  liftIO $ forM_ res $ \case
     Left err -> Text.IO.hPutStrLn stderr err
     Right violations -> Text.IO.putStr (foldMap (showViolation useColors) violations)

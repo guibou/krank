@@ -24,23 +24,23 @@ giturlTests domain = do
 
   it "handles full https url" $ do
     let match = check [fmt|https://{domainName}/guibou/krank/issues/1|]
-    match `shouldBe` (Just $ GitIssue domain "guibou" "krank" 1)
+    match `shouldBe` Just (GitIssue domain "guibou" "krank" 1)
 
   it "handles full http url" $ do
     let match = check [fmt|http://{domainName}/guibou/krank/issues/1|]
-    match `shouldBe` (Just $ GitIssue domain "guibou" "krank" 1)
+    match `shouldBe` Just (GitIssue domain "guibou" "krank" 1)
 
   it "handles short url - no protocol" $ do
     let match = check [fmt|{domainName}/guibou/krank/issues/1|]
-    match `shouldBe` (Just $ GitIssue domain "guibou" "krank" 1)
+    match `shouldBe` Just (GitIssue domain "guibou" "krank" 1)
 
   it "accepts www. in url" $ do
     let match = check [fmt|https://www.{domainName}/guibou/krank/issues/1|]
-    match `shouldBe` (Just $ GitIssue domain "guibou" "krank" 1)
+    match `shouldBe` Just (GitIssue domain "guibou" "krank" 1)
 
   it "accepts www in url - no protocol" $ do
     let match = check [fmt|www.{domainName}/guibou/krank/issues/1|]
-    match `shouldBe` (Just $ GitIssue domain "guibou" "krank" 1)
+    match `shouldBe` Just (GitIssue domain "guibou" "krank" 1)
 
   it "fails if the issue number is not an int" $ do
     let match = check [fmt|{domainName}/guibou/krank/issues/foo|]
@@ -56,15 +56,15 @@ giturlTests domain = do
 
   it "handles full https url" $ do
     let match = check [fmt|https://{domainName}/guibou/krank/issues/2|]
-    match `shouldBe` (Just $ GitIssue domain "guibou" "krank" 2)
+    match `shouldBe` Just (GitIssue domain "guibou" "krank" 2)
 
 spec :: Spec
 spec =
   context "Test.Krank.Checkers.specIssueTracker" $ do
-    describe "#githubParser" $ do
+    describe "#githubParser" $
       giturlTests Github
 
-    describe "#githlabParser" $ do
+    describe "#githlabParser" $
       giturlTests (Gitlab (GitlabHost "gitlab.com"))
 
     describe "#extractIssues" $

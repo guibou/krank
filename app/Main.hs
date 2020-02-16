@@ -26,8 +26,8 @@ filesToParse = many (Opt.argument Opt.str (Opt.metavar "FILES..."))
 
 githubKeyToParse :: Opt.Parser (Maybe GithubKey)
 githubKeyToParse = optional (
-  GithubKey <$> (
-    Opt.strOption $
+  GithubKey <$>
+    Opt.strOption (
       Opt.long "issuetracker-githubkey"
       <> Opt.metavar "PERSONAL_GITHUB_KEY"
       <> Opt.help "A github developer key to allow for more API calls or access to private github repo for the IssueTracker checker"))
@@ -35,12 +35,11 @@ githubKeyToParse = optional (
 parseGitlabKey :: Opt.ReadM (GitlabHost, GitlabKey)
 parseGitlabKey = Opt.eitherReader $ \(Text.pack->s) -> case scan [re|^([^=]+)=(.+)$|] s of
   [(_, [x, y])] -> Right (GitlabHost x, GitlabKey y)
-  _ -> Left $ [fmt|Unable to parse gitlab key=value from: {s}|]
+  _ -> Left [fmt|Unable to parse gitlab key=value from: {s}|]
 
 gitlabKeyToParse :: Opt.Parser (Map.Map GitlabHost GitlabKey)
 gitlabKeyToParse = Map.fromList <$> many (
-  (
-    Opt.option parseGitlabKey $
+    Opt.option parseGitlabKey (
       Opt.long "issuetracker-gitlabhost"
       <> Opt.metavar "HOST=PERSONAL_GITLAB_KEY"
       <> Opt.help "A couple of gitlab host and developer key to allow reaching private gitlab repo for the IssueTracker checker. Can be specified multiple times."))
@@ -56,7 +55,7 @@ optionsParser = KrankOpts
   <*> (KrankConfig
        <$> githubKeyToParse
        <*> gitlabKeyToParse
-       <*> (Opt.switch $ Opt.long "dry-run"
+       <*> Opt.switch (Opt.long "dry-run"
         <> Opt.help "Perform a dry run. Parse file, but do not execute HTTP requests")
        <*> noColorParse
       )

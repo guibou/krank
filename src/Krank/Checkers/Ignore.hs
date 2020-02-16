@@ -28,7 +28,7 @@ extractIssuesOnALine lineContent = Prelude.map f (RE.scan ignoreRe lineContent)
       where
         f (match, [command]) = (colNo, ignoreCommand)
           where
-            colNo = 1 + (ByteString.length $ fst $ ByteString.breakSubstring match lineContent)
+            colNo = 1 + ByteString.length (fst $ ByteString.breakSubstring match lineContent)
             ignoreCommand
               | command == "line" = IgnoreLine
               | otherwise = error [fmt|Impossible case, update the guard with: {ByteString.unpack command}|]
