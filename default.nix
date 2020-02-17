@@ -1,24 +1,67 @@
-{ nixpkgs ? ./nixpkgs.nix }:
-with import nixpkgs {
-  config = { allowBroken = true; };
-};
+{ pkgs ? import ./nixpkgs.nix {} }:
+with pkgs;
 rec {
-  krank = haskellPackages.developPackage {
-    name = "krank";
+  inherit pkgs;
 
-    # Filter temp files, git files, .ghc.environment and .nix files
-    # which are not part of the build
-    root = lib.sources.cleanSourceWith {
-      filter = name: type: let baseName = baseNameOf (toString name); in
-      !(lib.hasPrefix ".ghc.environment." baseName) && (baseName != "default.nix");
-      src = lib.sources.cleanSource ./.;
-    };
+  # Explicit list of used files. Else there is always too much and
+  # cache is invalidated.
+  sources = lib.sourceByRegex ./.  [
+    "krank\.cabal$"
+    ".*\.hs$"
+    "\.*.md$"
+    "src"
+    "app"
+    "src/Krank"
+    "src/Utils"
+    "src/Krank/Checkers"
+    "tests"
+    "tests/Test"
+    "tests/Test/Krank"
+    "tests/Test/Krank/Checkers"
+    "docs"
+    "docs/Checkers"
+    "LICENSE"
+  ];
 
-    overrides = self : super : {
-    };
+  # buildFromSdist ensures that the build will work on hackage
+  # callCabal2nix behaves well with direnv
+  krankBuilder = hPkgs: haskell.lib.buildFromSdist (hPkgs.callCabal2nix "krank" sources {});
+
+  krank_86 = krankBuilder haskell.packages.ghc865;
+  krank_88 = krankBuilder (haskell.packages.ghc881.override { overrides = self: super: {
+    # RSA < 2.4 does not build with GHC 8.8
+    RSA = super.RSA_2_4_1;
+  };});
+
+  # default is latest GHC
+  krank = krank_88;
+
+  # Run hlint on the codebase
+  hlint = runCommand "hlint-krank" {
+    nativeBuildInputs = [haskellPackages.hlint];
+  }
+  ''
+  cd ${sources}
+  hlint .
+  mkdir $out
+  '';
+
+  # Run ormolu on the codebase
+  # Fails if there is something to format
+  ormolu = runCommand "ormolu-krank" {
+    nativeBuildInputs = [haskellPackages.ormolu];
+  }
+  ''
+  cd ${sources}
+  ormolu --mode check $(find -name '*.hs')
+  mkdir $out
+  '';
+
+  ormolu-fix = mkShell {
+    nativeBuildInputs = [haskellPackages.ormolu git];
+    shellHook = ''
+      ormolu --mode inplace $(git ls-files | grep '\.hs$')
+      exit 0
+    '';
   };
-
-  # Build krank from sdist file. This is useful to check
-  # That the sdist contains the required files.
-  krank-sdist = haskell.lib.buildFromSdist krank;
 }

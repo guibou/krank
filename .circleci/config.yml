@@ -9,20 +9,30 @@ jobs:
       - checkout
       - restore_cache:
           keys:
+            - cci-nix-{{ checksum "nixpkgs.nix" }}-{{ checksum "default.nix" }}-{{ checksum "krank.cabal" }}-{{ epoch }}
             - cci-nix-{{ checksum "nixpkgs.nix" }}-{{ checksum "default.nix" }}-{{ checksum "krank.cabal" }}
             - cci-nix-{{ checksum "nixpkgs.nix" }}-{{ checksum "default.nix" }}
             - cci-nix-{{ checksum "nixpkgs.nix" }}
+            - cci-nix
       - run:
-          name: Prefetch
-          command: nix-shell --command true
+          name: Check hlint
+          command: nix-build -A hlint
+      - run:
+          name: Build current GHC (8.8)
+          command: nix-build -A krank
+      - run:
+          name: Build GHC 8.6
+          command: nix-build -A krank_86
+      - run:
+          name: Check ormolu
+          command: nix-build -A ormolu
       - save_cache:
+          when: always
           name: Cache Dependencies
-          key: cci-nix-{{ checksum "nixpkgs.nix" }}-{{ checksum "default.nix" }}-{{ checksum "krank.cabal" }}
+          key: cci-nix-{{ checksum "nixpkgs.nix" }}-{{ checksum "default.nix" }}-{{ checksum "krank.cabal" }}-{{ epoch }}
           paths:
             - "/nix/store"
-      - run:
-          name: Build
-          command: nix-build -A krank-sdist
+
 
   stack:
     docker:
@@ -30,28 +40,29 @@ jobs:
     working_directory: ~/krank
     steps:
       - checkout
+      - run:
+         name: Install dependencies
+         command: apt-get update && apt-get install -y libpcre2-dev
       - restore_cache:
           keys:
+            - cci-demo-haskell-v1-{{ checksum "stack.yaml" }}-{{ checksum "krank.cabal" }}-{{ epoch }}
             - cci-demo-haskell-v1-{{ checksum "stack.yaml" }}-{{ checksum "krank.cabal" }}
             - cci-demo-haskell-v1-{{ checksum "stack.yaml" }}
+            - cci-demo-haskell-v1
       - run:
-          name: Build dependencies
-          command: stack test --only-dependencies
+          name: Build
+          command: stack test -j1
       - save_cache:
+          when: always
           name: Cache Dependencies
-          key: cci-demo-haskell-v1-{{ checksum "stack.yaml" }}-{{ checksum "krank.cabal" }}
+          key: cci-demo-haskell-v1-{{ checksum "stack.yaml" }}-{{ checksum "krank.cabal" }}-{{ epoch }}
           paths:
             - "/root/.stack"
             - ".stack-work"
-      - run:
-          name: Build
-          command: stack test
 
 workflows:
   version: 2
   nix_stack:
     jobs:
       - nix
-# Disable stack build, it takes too much memory and time. We'll see for release
-# how it build with stack and push it to lts.
-#      - stack
+      - stack

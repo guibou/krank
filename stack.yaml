@@ -1,8 +1,13 @@
-resolver: lts-14.6
+resolver: lts-14.27
 
 packages:
 - .
 
-# PyF was removed from lts and nightly without notice
 extra-deps:
-- PyF-0.8.1.1@sha256:bd9369c55968b3b6be251c66e513b77af22ccc9fa60b6343ab6ff7d851cf28cd,2567
+- pretty-terminal-0.1.0.0@sha256:e9135d86ebb2a8e3aaf5a79088de4628dbd49988388e0fbfc26c5ecb3c399ad9,1638
+
+nix:
+  packages:
+  # hopefully theses libraries are in the stack global environment
+    - pcre
+    - zlib
