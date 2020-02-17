@@ -148,10 +148,9 @@ headersFor issue = do
       Nothing -> pure mempty
 
 httpExcHandler ::
-  Localized GitIssue ->
   Req.HttpException ->
   ReaderT KrankConfig IO Value
-httpExcHandler issue exc =
+httpExcHandler exc =
   pure . AesonT.object $
     [ ( "error",
         AesonT.String . pack $
@@ -165,7 +164,7 @@ httpExcHandler issue exc =
 restIssue ::
   Localized GitIssue ->
   ReaderT KrankConfig IO Value
-restIssue issue = catch (tryRestIssue issue) (httpExcHandler issue)
+restIssue issue = catch (tryRestIssue issue) httpExcHandler
 
 statusParser ::
   Value ->
