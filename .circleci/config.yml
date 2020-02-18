@@ -50,8 +50,11 @@ jobs:
             - cci-demo-haskell-v1-{{ checksum "stack.yaml" }}
             - cci-demo-haskell-v1
       - run:
-          name: Build
+          name: Build 8.8
           command: stack test -j1
+      - run:
+          name: Build 8.6
+          command: stack --resolver lts-14.27 test -j1
       - save_cache:
           when: always
           name: Cache Dependencies
