@@ -1,3 +1,5 @@
+{-# LANGUAGE DataKinds #-}
+
 module Krank.Types
   ( GithubKey (..),
     GitlabHost (..),
@@ -7,11 +9,16 @@ module Krank.Types
     KrankConfig (..),
     SourcePos (..),
     Localized (..),
+    MonadKrank (..),
   )
 where
 
+import Control.Exception.Safe (MonadCatch)
+import Data.Aeson (FromJSON)
+import Data.ByteString
 import Data.Map (Map)
 import Data.Text (Text)
+import qualified Network.HTTP.Req as Req
 
 newtype GithubKey = GithubKey Text deriving (Show)
 
@@ -64,3 +71,31 @@ data KrankConfig
         useColors :: Bool
       }
   deriving (Show)
+
+-- | This monad represents all the effect that Krank needs
+class (Monad m, MonadCatch m) => MonadKrank m where
+
+  -- | Run a REST requet
+  krankRunRESTRequest :: FromJSON t => Req.Url 'Req.Https -> Req.Option 'Req.Https -> m t
+
+  -- | Read the configuration
+  krankAsks :: (KrankConfig -> b) -> m b
+
+  -- * Concurrency
+
+  -- | Apply a function on many item in a concurrent way
+  krankMapConcurrently :: (a -> m b) -> [a] -> m [b]
+
+  krankForConcurrently :: [a] -> (a -> m b) -> m [b]
+  krankForConcurrently = flip krankMapConcurrently
+
+  -- * IO Part
+
+  -- | Read a file from filesystem
+  krankReadFile :: FilePath -> m ByteString
+
+  -- | Log an error (with trailing \n)
+  krankPutStrLnStderr :: Text -> m ()
+
+  -- | Log a message (without trailing \n)
+  krankPutStr :: Text -> m ()

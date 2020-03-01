@@ -55,6 +55,11 @@ test-suite krank-test
                        , pcre-heavy
                        , bytestring
                        , text
+                       , mtl
+                       , containers
+                       , req
+                       , aeson
+                       , safe-exceptions
   ghc-options:         -Wall -threaded -rtsopts -with-rtsopts=-N
   default-language:    Haskell2010
 
@@ -68,6 +73,7 @@ executable krank
                        , text
                        , PyF
                        , containers
+                       , mtl
   hs-source-dirs:      app
   default-language:    Haskell2010
   ghc-options:         -Wall -threaded -rtsopts

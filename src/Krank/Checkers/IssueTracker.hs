@@ -19,9 +19,7 @@ module Krank.Checkers.IssueTracker
   )
 where
 
-import Control.Concurrent.Async.Lifted (mapConcurrently)
 import Control.Exception.Safe (catch)
-import Control.Monad.Reader (ReaderT, asks)
 import Data.Aeson ((.:), Value)
 import qualified Data.Aeson.Types as AesonT
 import qualified Data.ByteString.Char8 as ByteString
@@ -115,30 +113,22 @@ issueUrl issue = case server issue of
 
 -- try Issue can fail, on non-2xx HTTP response
 tryRestIssue ::
+  MonadKrank m =>
   Localized GitIssue ->
-  ReaderT KrankConfig IO Value
+  m Value
 tryRestIssue locIssue = do
   let issue = unLocalized locIssue
   let url = issueUrl issue
   headers <- headersFor issue
-  Req.runReq Req.defaultHttpConfig $ do
-    r <-
-      Req.req
-        Req.GET
-        url
-        Req.NoReqBody
-        Req.jsonResponse
-        ( Req.header "User-Agent" "krank"
-            <> headers
-        )
-    pure $ Req.responseBody r
+  krankRunRESTRequest url headers
 
 headersFor ::
+  MonadKrank m =>
   GitIssue ->
-  ReaderT KrankConfig IO (Req.Option 'Req.Https)
+  m (Req.Option 'Req.Https)
 headersFor issue = do
-  mGithubKey <- asks githubKey
-  mGitlabKeys <- asks gitlabKeys
+  mGithubKey <- krankAsks githubKey
+  mGitlabKeys <- krankAsks gitlabKeys
   case server issue of
     Github -> case mGithubKey of
       Just (GithubKey token) -> pure $ Req.oAuth2Token (Text.Encoding.encodeUtf8 token)
@@ -148,8 +138,9 @@ headersFor issue = do
       Nothing -> pure mempty
 
 httpExcHandler ::
+  MonadKrank m =>
   Req.HttpException ->
-  ReaderT KrankConfig IO Value
+  m Value
 httpExcHandler exc =
   pure . AesonT.object $
     [ ( "error",
@@ -162,8 +153,9 @@ httpExcHandler exc =
     ]
 
 restIssue ::
+  MonadKrank m =>
   Localized GitIssue ->
-  ReaderT KrankConfig IO Value
+  m Value
 restIssue issue = catch (tryRestIssue issue) httpExcHandler
 
 statusParser ::
@@ -192,10 +184,11 @@ errorParser o = do
     readErr (AesonT.Error _) = "invalid JSON"
 
 gitIssuesWithStatus ::
+  MonadKrank m =>
   [Localized GitIssue] ->
-  ReaderT KrankConfig IO [Either (Text, Localized GitIssue) GitIssueWithStatus]
+  m [Either (Text, Localized GitIssue) GitIssueWithStatus]
 gitIssuesWithStatus issues = do
-  statuses <- mapConcurrently restIssue issues
+  statuses <- krankMapConcurrently restIssue issues
   pure $ zipWith f issues (fmap statusParser statuses)
   where
     f issue (Left err) = Left (err, issue)
@@ -219,37 +212,41 @@ issuePrintUrl :: GitIssue -> Text
 issuePrintUrl GitIssue {owner, repo, server, issueNum} = [fmt|https://{serverDomain server}/{owner}/{repo}/issues/{issueNum}|]
 
 checkText ::
+  MonadKrank m =>
   FilePath ->
   ByteString ->
-  ReaderT KrankConfig IO [Violation]
+  m [Violation]
 checkText path t = do
   let issues = extractIssues path t
-  isDryRun <- asks dryRun
+  isDryRun <- krankAsks dryRun
   if isDryRun
     then
       pure $
         fmap
-          ( \issue -> Violation
-              { checker = issuePrintUrl . unLocalized $ issue,
-                level = Info,
-                message = "Dry run",
-                location = getLocation (issue :: Localized GitIssue)
-              }
+          ( \issue ->
+              Violation
+                { checker = issuePrintUrl . unLocalized $ issue,
+                  level = Info,
+                  message = "Dry run",
+                  location = getLocation (issue :: Localized GitIssue)
+                }
           )
           issues
     else do
       issuesWithStatus <- gitIssuesWithStatus issues
       pure $ fmap f issuesWithStatus
   where
-    f (Left (err, issue)) = Violation
-      { checker = issuePrintUrl . unLocalized $ issue,
-        level = Warning,
-        message = "Url could not be reached: " <> err,
-        location = getLocation (issue :: Localized GitIssue)
-      }
-    f (Right issue) = Violation
-      { checker = issuePrintUrl (unLocalized . gitIssue $ issue),
-        level = issueToLevel issue,
-        message = issueToMessage issue,
-        location = getLocation (gitIssue issue :: Localized GitIssue)
-      }
+    f (Left (err, issue)) =
+      Violation
+        { checker = issuePrintUrl . unLocalized $ issue,
+          level = Warning,
+          message = "Url could not be reached: " <> err,
+          location = getLocation (issue :: Localized GitIssue)
+        }
+    f (Right issue) =
+      Violation
+        { checker = issuePrintUrl (unLocalized . gitIssue $ issue),
+          level = issueToLevel issue,
+          message = issueToMessage issue,
+          location = getLocation (gitIssue issue :: Localized GitIssue)
+        }

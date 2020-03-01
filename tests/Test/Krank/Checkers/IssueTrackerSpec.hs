@@ -1,3 +1,6 @@
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 
@@ -6,11 +9,62 @@ module Test.Krank.Checkers.IssueTrackerSpec
   )
 where
 
-import Data.ByteString.Char8 (ByteString)
+import Control.Exception.Safe (MonadCatch, MonadThrow, SomeException, throw)
+import Control.Monad.Reader
+import Control.Monad.Writer
+import Data.Aeson (Result (..), Value (..), fromJSON, object)
+import Data.ByteString (ByteString)
+import Data.Coerce
+import Data.Map (Map)
+import qualified Data.Map as Map
+import Data.Text
+import Krank
 import Krank.Checkers.IssueTracker
 import Krank.Types
+import qualified Network.HTTP.Req as Req
 import PyF (fmt)
 import Test.Hspec
+
+data TestEnv
+  = TestEnv
+      { envFiles :: Map FilePath Data.ByteString.ByteString,
+        envRestAnswers :: Map (Req.Url 'Req.Https) (Either Req.HttpException Value)
+      }
+
+newtype TestKrank t
+  = TestKrank
+      { unTestKrank :: WriterT ([Text], [Text]) (ReaderT (TestEnv, KrankConfig) (Either SomeException)) t
+      }
+  deriving newtype (Monad, Applicative, Functor, MonadThrow, MonadCatch)
+
+-- | "pure" instance of 'MonadKrank'
+-- It works on a 'TestEnv'.
+instance MonadKrank TestKrank where
+
+  krankPutStrLnStderr t = TestKrank $ tell ([], [t])
+
+  krankPutStr t = TestKrank $ tell ([t], [])
+
+  krankAsks f = TestKrank $ asks (f . snd)
+
+  krankMapConcurrently f l = TestKrank $ mapM (coerce . f) l
+
+  krankReadFile path = TestKrank $ do
+    files <- asks (envFiles . fst)
+    case Map.lookup path files of
+      Nothing -> throw (userError "file not found")
+      Just c -> pure c
+
+  -- Note: options are ignored
+  krankRunRESTRequest url _options = TestKrank $ do
+    restAnswers <- asks (envRestAnswers . fst)
+    case Map.lookup url restAnswers of
+      Nothing -> error ("Answer not specified for this query: " <> show url)
+      Just a -> case a of
+        Right json -> case fromJSON json of
+          Success res -> pure res
+          Data.Aeson.Error s -> throw (Req.JsonHttpException s)
+        Left exception -> throw exception
 
 check :: ByteString -> Maybe GitIssue
 check a = case extractIssuesOnALine a of
@@ -49,7 +103,7 @@ giturlTests domain = do
     match `shouldBe` Just (GitIssue domain "guibou" "krank" 2)
 
 spec :: Spec
-spec =
+spec = do
   context "Test.Krank.Checkers.specIssueTracker" $ do
     describe "#githubParser" $
       giturlTests Github
@@ -73,3 +127,29 @@ spec =
                               Localized (SourcePos "localFile" 4 25) $ GitIssue Github "guibou" "krank" 1,
                               Localized (SourcePos "localFile" 5 16) $ GitIssue (Gitlab (GitlabHost "gitlab.haskell.org")) "ghc" "ghc" 16955
                             ]
+  describe "huge test" $ it "should work" $ do
+    let config =
+          KrankConfig
+            { githubKey = Nothing,
+              gitlabKeys = Map.empty,
+              dryRun = False,
+              useColors = False
+            }
+        env =
+          TestEnv
+            { envFiles = Map.singleton "foo" " hello you https://github.com/foo/bar/issues/10 yeah\nhttps://github.com/foo/bar/issues/11",
+              envRestAnswers =
+                Map.fromList
+                  [ (Req.https "api.github.com" Req./: "repos" Req./: "foo" Req./: "bar" Req./: "issues" Req./: "10", Right $ object [("state", String "closed")]),
+                    (Req.https "api.github.com" Req./: "repos" Req./: "foo" Req./: "bar" Req./: "issues" Req./: "11", Right $ object [("state", String "open")])
+                  ]
+            }
+    let Right res = runReaderT (runWriterT (unTestKrank $ runKrank ["foo", "bar"])) (env, config)
+    res
+      `shouldBe` ( (),
+                   ( ["\nfoo:1:12: error:\n  now Closed: https://github.com/foo/bar/issues/10\n\nfoo:2:1: info:\n  still Open: https://github.com/foo/bar/issues/11\n"] :: [Text],
+                     [ "Error when processing bar: user error (file not found)"
+                     ] ::
+                       [Text]
+                   )
+                 )
