@@ -20,6 +20,8 @@ foo.hs:67:11: error:
   now Closed: https://github.com/bazelbuild/bazel/issues/6313
 ```
 
+`krank` will fail (i.e. non-zero exit code) in case of any error.
+
 Here `krank` is telling us that our source code links to github
 issues which are now closed. Time to remove some workarounds now that upstream issues are fixed!
 
