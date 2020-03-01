@@ -147,13 +147,59 @@ spec = do
               }
       let Right res = runReaderT (runWriterT (unTestKrank $ runKrank ["foo", "bar"])) (env, config)
       res
-        `shouldBe` ( (),
+        `shouldBe` ( False,
                      ( ["\nfoo:1:12: error:\n  IssueTracker check for https://github.com/foo/bar/issues/10\n    now Closed\n\nfoo:2:1: info:\n  IssueTracker check for https://github.com/foo/bar/issues/11\n    still Open\n"] :: [Text],
                        [ "Error when processing bar: user error (file not found)"
                        ] ::
                          [Text]
-                       )
                      )
+                   )
+    let config =
+          KrankConfig
+            { githubKey = Nothing,
+              gitlabKeys = Map.empty,
+              dryRun = False,
+              useColors = False
+            }
+        env state10 =
+          TestEnv
+            { envFiles = Map.singleton "foo" " hello you https://github.com/foo/bar/issues/10 yeah\nhttps://github.com/foo/bar/issues/11",
+              envRestAnswers =
+                Map.fromList
+                  [ (Req.https "api.github.com" Req./: "repos" Req./: "foo" Req./: "bar" Req./: "issues" Req./: "10", Right $ object [("state", String state10)]),
+                    (Req.https "api.github.com" Req./: "repos" Req./: "foo" Req./: "bar" Req./: "issues" Req./: "11", Right $ object [("state", String "open")])
+                  ]
+            }
+    it "with error in url" $ do
+      let Right res = runReaderT (runWriterT (unTestKrank $ runKrank ["foo"])) (env "closed", config)
+      res
+        `shouldBe` ( False,
+                     ( ["\nfoo:1:12: error:\n  IssueTracker check for https://github.com/foo/bar/issues/10\n    now Closed\n\nfoo:2:1: info:\n  IssueTracker check for https://github.com/foo/bar/issues/11\n    still Open\n"] :: [Text],
+                       [] :: [Text]
+                     )
+                   )
+    it "with error in file" $ do
+      let Right res = runReaderT (runWriterT (unTestKrank $ runKrank ["foo", "bar"])) (env "open", config)
+      res
+        `shouldBe` ( False,
+                     ( ["\nfoo:1:12: info:\n  IssueTracker check for https://github.com/foo/bar/issues/10\n    still Open\n\nfoo:2:1: info:\n  IssueTracker check for https://github.com/foo/bar/issues/11\n    still Open\n"] :: [Text],
+                       [ "Error when processing bar: user error (file not found)"
+                       ] ::
+                         [Text]
+                     )
+                   )
+    -- Note: it only tests the semantic of top level function.
+    -- We need integratino tests wich ensures that the final function
+    -- works correctly.
+    -- Or we need to move more things inside the Krank monad, such as "exitFailure".
+    it "without error" $ do
+      let Right res = runReaderT (runWriterT (unTestKrank $ runKrank ["foo"])) (env "open", config)
+      res
+        `shouldBe` ( True,
+                     ( ["\nfoo:1:12: info:\n  IssueTracker check for https://github.com/foo/bar/issues/10\n    still Open\n\nfoo:2:1: info:\n  IssueTracker check for https://github.com/foo/bar/issues/11\n    still Open\n"] :: [Text],
+                       [] :: [Text]
+                     )
+                   )
     it "ignore are ignored" $ do
       let config =
             KrankConfig
@@ -174,7 +220,7 @@ spec = do
       let Right res = runReaderT (runWriterT (unTestKrank $ runKrank ["foo", "bar"])) (env, config)
       -- TODO: perhaps ignored lines must appears in the listing, but not as error
       res
-        `shouldBe` ( (),
+        `shouldBe` ( False,
                      ( ["\nfoo:2:1: info:\n  IssueTracker check for https://github.com/foo/bar/issues/11\n    still Open\n"] :: [Text],
                        [ "Error when processing bar: user error (file not found)"
                        ] ::

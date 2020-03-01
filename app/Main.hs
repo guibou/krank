@@ -12,6 +12,7 @@ import qualified Options.Applicative as Opt
 import Options.Applicative ((<**>), many, some)
 import PyF (fmt)
 import System.Console.Pretty (supportsPretty)
+import System.Exit (exitFailure)
 import Text.Regex.PCRE.Heavy
 
 data KrankOpts
@@ -88,4 +89,5 @@ main = do
         (krankConfig config)
           { useColors = useColors (krankConfig config) && canUseColor
           }
-  runReaderT (unKrank $ runKrank (codeFilePaths config)) kConfig
+  success <- runReaderT (unKrank $ runKrank (codeFilePaths config)) kConfig
+  unless success exitFailure
