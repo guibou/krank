@@ -5,7 +5,6 @@
 import Control.Applicative (optional)
 import Control.Monad.Reader
 import qualified Data.Map as Map
-import Data.Semigroup ((<>))
 import qualified Data.Text as Text
 import Krank
 import Krank.Types
