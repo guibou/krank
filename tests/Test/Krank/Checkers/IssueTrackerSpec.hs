@@ -127,29 +127,57 @@ spec = do
                               Localized (SourcePos "localFile" 4 25) $ GitIssue Github "guibou" "krank" 1,
                               Localized (SourcePos "localFile" 5 16) $ GitIssue (Gitlab (GitlabHost "gitlab.haskell.org")) "ghc" "ghc" 16955
                             ]
-  describe "huge test" $ it "should work" $ do
-    let config =
-          KrankConfig
-            { githubKey = Nothing,
-              gitlabKeys = Map.empty,
-              dryRun = False,
-              useColors = False
-            }
-        env =
-          TestEnv
-            { envFiles = Map.singleton "foo" " hello you https://github.com/foo/bar/issues/10 yeah\nhttps://github.com/foo/bar/issues/11",
-              envRestAnswers =
-                Map.fromList
-                  [ (Req.https "api.github.com" Req./: "repos" Req./: "foo" Req./: "bar" Req./: "issues" Req./: "10", Right $ object [("state", String "closed")]),
-                    (Req.https "api.github.com" Req./: "repos" Req./: "foo" Req./: "bar" Req./: "issues" Req./: "11", Right $ object [("state", String "open")])
-                  ]
-            }
-    let Right res = runReaderT (runWriterT (unTestKrank $ runKrank ["foo", "bar"])) (env, config)
-    res
-      `shouldBe` ( (),
-                   ( ["\nfoo:1:12: error:\n  now Closed: https://github.com/foo/bar/issues/10\n\nfoo:2:1: info:\n  still Open: https://github.com/foo/bar/issues/11\n"] :: [Text],
-                     [ "Error when processing bar: user error (file not found)"
-                     ] ::
-                       [Text]
+  describe "huge test" $ do
+    it "should work" $ do
+      let config =
+            KrankConfig
+              { githubKey = Nothing,
+                gitlabKeys = Map.empty,
+                dryRun = False,
+                useColors = False
+              }
+          env =
+            TestEnv
+              { envFiles = Map.singleton "foo" " hello you https://github.com/foo/bar/issues/10 yeah\nhttps://github.com/foo/bar/issues/11",
+                envRestAnswers =
+                  Map.fromList
+                    [ (Req.https "api.github.com" Req./: "repos" Req./: "foo" Req./: "bar" Req./: "issues" Req./: "10", Right $ object [("state", String "closed")]),
+                      (Req.https "api.github.com" Req./: "repos" Req./: "foo" Req./: "bar" Req./: "issues" Req./: "11", Right $ object [("state", String "open")])
+                    ]
+              }
+      let Right res = runReaderT (runWriterT (unTestKrank $ runKrank ["foo", "bar"])) (env, config)
+      res
+        `shouldBe` ( (),
+                     ( ["\nfoo:1:12: error:\n  now Closed: https://github.com/foo/bar/issues/10\n\nfoo:2:1: info:\n  still Open: https://github.com/foo/bar/issues/11\n"] :: [Text],
+                       [ "Error when processing bar: user error (file not found)"
+                       ] ::
+                         [Text]
+                     )
                    )
-                 )
+    it "ignore are ignored" $ do
+      let config =
+            KrankConfig
+              { githubKey = Nothing,
+                gitlabKeys = Map.empty,
+                dryRun = False,
+                useColors = False
+              }
+          env =
+            TestEnv
+              { envFiles = Map.singleton "foo" " hello you https://github.com/foo/bar/issues/10 yeah# krank:ignore-line\nhttps://github.com/foo/bar/issues/11",
+                envRestAnswers =
+                  Map.fromList
+                    [ (Req.https "api.github.com" Req./: "repos" Req./: "foo" Req./: "bar" Req./: "issues" Req./: "10", Right $ object [("state", String "closed")]),
+                      (Req.https "api.github.com" Req./: "repos" Req./: "foo" Req./: "bar" Req./: "issues" Req./: "11", Right $ object [("state", String "open")])
+                    ]
+              }
+      let Right res = runReaderT (runWriterT (unTestKrank $ runKrank ["foo", "bar"])) (env, config)
+      -- TODO: perhaps ignored lines must appears in the listing, but not as error
+      res
+        `shouldBe` ( (),
+                     ( ["\nfoo:2:1: info:\n  still Open: https://github.com/foo/bar/issues/11\n"] :: [Text],
+                       [ "Error when processing bar: user error (file not found)"
+                       ] ::
+                         [Text]
+                     )
+                   )
