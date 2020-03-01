@@ -5,12 +5,11 @@
 import Control.Applicative (optional)
 import Control.Monad.Reader
 import qualified Data.Map as Map
-import Data.Semigroup ((<>))
 import qualified Data.Text as Text
 import Krank
 import Krank.Types
 import qualified Options.Applicative as Opt
-import Options.Applicative ((<**>), many)
+import Options.Applicative ((<**>), many, some)
 import PyF (fmt)
 import System.Console.Pretty (supportsPretty)
 import Text.Regex.PCRE.Heavy
@@ -22,7 +21,7 @@ data KrankOpts
       }
 
 filesToParse :: Opt.Parser [FilePath]
-filesToParse = many (Opt.argument Opt.str (Opt.metavar "FILES..."))
+filesToParse = some (Opt.argument Opt.str (Opt.metavar "FILES..."))
 
 githubKeyToParse :: Opt.Parser (Maybe GithubKey)
 githubKeyToParse =

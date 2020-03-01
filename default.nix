@@ -8,7 +8,7 @@ rec {
   sources = lib.sourceByRegex ./.  [
     "krank\.cabal$"
     ".*\.hs$"
-    "\.*.md$"
+    ".*\.md$"
     "src"
     "app"
     "src/Krank"
