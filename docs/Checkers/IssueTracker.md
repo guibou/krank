@@ -11,6 +11,7 @@ the workaround might be now unnecessary)
 
 **IssueTracker** currently supports the following list of issue trackers:
 * Github
+* Gitlab
 
 ## Configuration
 
@@ -37,3 +38,12 @@ To do so, you need to generate a **Personal Access Token**
 ([See
 documentation](https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line))
 with the `repo` scope and pass it to `krank` with the `--issuetracker-githubkey` option
+
+### Gitlab
+
+You can provide a gitlab **Personal Access
+Token** using `--issuetracker-gitlabhost` in the form
+`hostname=key`. For example, `--issuetracker-gitlabhost
+gitlab.ghc.org=F6712`. You'll find more informations in the gitlab
+documentation for [personal access
+token](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html).
