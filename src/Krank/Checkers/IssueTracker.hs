@@ -31,7 +31,8 @@ import Krank.Types
 import qualified Network.HTTP.Req as Req
 import PyF (fmt)
 import qualified Text.Regex.PCRE.Heavy as RE
-import Utils.Req
+import Utils.Github (showGithubException)
+import Utils.Gitlab (showGitlabException)
 
 data GitServer = Github | Gitlab GitlabHost
   deriving (Eq, Show)
@@ -139,24 +140,32 @@ headersFor issue = do
 
 httpExcHandler ::
   MonadKrank m =>
+  GitServer ->
   Req.HttpException ->
   m Value
-httpExcHandler exc =
+httpExcHandler gitServer exc =
   pure . AesonT.object $
     [ ( "error",
         AesonT.String . pack $
           [fmt|
     Error:
-      {(showHTTPException exc)}
+      {(showGitServerException gitServer exc)}
   |]
       )
     ]
+
+showGitServerException ::
+  GitServer ->
+  Req.HttpException ->
+  Text
+showGitServerException Github exc = showGithubException exc
+showGitServerException (Gitlab _) exc = showGitlabException exc
 
 restIssue ::
   MonadKrank m =>
   Localized GitIssue ->
   m Value
-restIssue issue = catch (tryRestIssue issue) httpExcHandler
+restIssue issue = catch (tryRestIssue issue) (httpExcHandler . server . unLocalized $ issue)
 
 statusParser ::
   Value ->
