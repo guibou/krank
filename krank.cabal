@@ -21,25 +21,27 @@ library
                        Krank.Checkers.IssueTracker
                        Krank.Formatter
                        Krank.Types
-  other-modules:       Utils.Req
+                       Utils.Req
+                       Utils.Github
+                       Utils.Gitlab
 
   build-depends:       base >= 4.9
+                       , PyF >= 0.8.1.0
                        , aeson >= 1.4.4
+                       , bytestring
+                       , containers
                        , http-client >= 0.6
                        , http-types >= 0.12
-                       , PyF >= 0.8.1.0
+                       , lifted-async
+                       , mtl
+                       , pcre-heavy
+                       , pretty-terminal
                        , req >= 2.1.0
+                       , safe-exceptions
                        , text >= 1.2.3
                        , unordered-containers >= 0.2.10
-                       , pcre-heavy
-                       , mtl
-                       , safe-exceptions
-                       , pretty-terminal
-                       , bytestring
-                       , lifted-async
-                       , containers
   hs-source-dirs:      src
-  ghc-options: -Wall
+  ghc-options:         -Wall
   default-language:    Haskell2010
 
 test-suite krank-test
@@ -47,19 +49,24 @@ test-suite krank-test
   hs-source-dirs:      tests
   main-is:             Spec.hs
   other-modules:       Test.Krank.Checkers.IssueTrackerSpec
+                       Test.Utils.GithubSpec
   build-tools:
   build-depends:       base
-                       , hspec >= 2.7
                        , PyF >= 0.8.1.0
-                       , krank
-                       , pcre-heavy
-                       , bytestring
-                       , text
-                       , mtl
-                       , containers
-                       , req
                        , aeson
+                       , bytestring
+                       , containers
+                       , hspec >= 2.7
+                       , http-client >= 0.6
+                       , http-types >= 0.12
+                       , krank
+                       , mtl
+                       , pcre-heavy
+                       , req
+                       , req >= 2.1.0
                        , safe-exceptions
+                       , text
+                       , unordered-containers >= 0.2.10
   ghc-options:         -Wall -threaded -rtsopts -with-rtsopts=-N
   default-language:    Haskell2010
 

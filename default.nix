@@ -18,6 +18,7 @@ rec {
     "tests/Test"
     "tests/Test/Krank"
     "tests/Test/Krank/Checkers"
+    "tests/Test/Utils"
     "docs"
     "docs/Checkers"
     "LICENSE"
