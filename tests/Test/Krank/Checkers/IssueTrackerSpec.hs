@@ -147,7 +147,7 @@ spec = do
     let Right res = runReaderT (runWriterT (unTestKrank $ runKrank ["foo", "bar"])) (env, config)
     res
       `shouldBe` ( (),
-                   ( ["\nfoo:1:12: error:\n  now Closed: https://github.com/foo/bar/issues/10\n\nfoo:2:1: info:\n  still Open: https://github.com/foo/bar/issues/11\n"] :: [Text],
+                   ( ["\nfoo:1:12: error:\n  IssueTracker check for https://github.com/foo/bar/issues/10\n    now Closed\n\nfoo:2:1: info:\n  IssueTracker check for https://github.com/foo/bar/issues/11\n    still Open\n"] :: [Text],
                      [ "Error when processing bar: user error (file not found)"
                      ] ::
                        [Text]
