@@ -21,9 +21,10 @@ library
                        Krank.Checkers.IssueTracker
                        Krank.Formatter
                        Krank.Types
-                       Utils.Req
+                       Utils.Display
                        Utils.Github
                        Utils.Gitlab
+                       Utils.Req
 
   build-depends:       base >= 4.9
                        , PyF >= 0.8.1.0

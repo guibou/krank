@@ -144,15 +144,7 @@ httpExcHandler ::
   Req.HttpException ->
   m Value
 httpExcHandler gitServer exc =
-  pure . AesonT.object $
-    [ ( "error",
-        AesonT.String . pack $
-          [fmt|
-    Error:
-      {(showGitServerException gitServer exc)}
-  |]
-      )
-    ]
+  pure . AesonT.object $ [("error", AesonT.String . pack $ [fmt|{(showGitServerException gitServer exc)}|])]
 
 showGitServerException ::
   GitServer ->
@@ -218,7 +210,7 @@ issueToMessage i = case issueStatus i of
   Closed -> [fmt|now Closed|]
 
 issuePrintUrl :: GitIssue -> Text
-issuePrintUrl GitIssue {owner, repo, server, issueNum} = [fmt|https://{serverDomain server}/{owner}/{repo}/issues/{issueNum}|]
+issuePrintUrl GitIssue {owner, repo, server, issueNum} = [fmt|IssueTracker check for https://{serverDomain server}/{owner}/{repo}/issues/{issueNum}|]
 
 checkText ::
   MonadKrank m =>
@@ -249,7 +241,7 @@ checkText path t = do
       Violation
         { checker = issuePrintUrl . unLocalized $ issue,
           level = Warning,
-          message = "Url could not be reached: " <> err,
+          message = "Error when calling the API:\n" <> err,
           location = getLocation (issue :: Localized GitIssue)
         }
     f (Right issue) =

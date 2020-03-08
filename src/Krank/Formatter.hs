@@ -12,6 +12,7 @@ import Data.Text (Text)
 import Krank.Types
 import PyF (fmt)
 import System.Console.Pretty
+import Utils.Display (indent)
 
 showViolation ::
   Bool ->
@@ -20,7 +21,8 @@ showViolation ::
 showViolation useColors Violation {checker, location, level, message} =
   [fmt|
 {showSourcePos location}: {showViolationLevel useColors level}:
-  {message}: {checker}
+{indent 2 checker}
+{indent 4 message}
 |]
 
 showViolationLevel :: Bool -> ViolationLevel -> String

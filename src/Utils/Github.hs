@@ -65,9 +65,8 @@ githubAPILimitErrorText :: Text
 githubAPILimitErrorText =
   [fmt|\
 Github API Rate limit exceeded.
-| You might want to provide a github API key with the --issuetracker-githubkey option.
-| See https://github.com/guibou/krank/blob/master/docs/Checkers/IssueTracker.md#api-rate-limitation
-|]
+You might want to provide a github API key with the --issuetracker-githubkey option.
+See https://github.com/guibou/krank/blob/master/docs/Checkers/IssueTracker.md#api-rate-limitation|]
 
 apiRateLimitPrefix :: Text
 apiRateLimitPrefix = "API rate limit exceeded"
