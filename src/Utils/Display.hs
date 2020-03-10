@@ -17,5 +17,5 @@ indent nbSpaces text = indentedText
   where
     (firstLine : nextLines) = Text.splitOn "\n" text
     prefixedLines = map (\a -> [fmt|| {a}|]) nextLines
-    indentedLines = map (\a -> [fmt|{take nbSpaces $ repeat ' '}{a}|]) (firstLine : prefixedLines)
+    indentedLines = map (\a -> [fmt|{replicate nbSpaces ' '}{a}|]) (firstLine : prefixedLines)
     indentedText = Text.intercalate "\n" indentedLines
