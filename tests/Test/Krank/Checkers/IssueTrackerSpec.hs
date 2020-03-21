@@ -40,7 +40,6 @@ newtype TestKrank t
 -- | "pure" instance of 'MonadKrank'
 -- It works on a 'TestEnv'.
 instance MonadKrank TestKrank where
-
   krankPutStrLnStderr t = TestKrank $ tell ([], [t])
 
   krankPutStr t = TestKrank $ tell ([t], [])
@@ -75,8 +74,8 @@ giturlTests :: GitServer -> Spec
 giturlTests domain = do
   let domainName = serverDomain domain
   it "handles full https url" $ do
-    let match = check [fmt|https://{domainName}/guibou/krank/issues/1|]
-    match `shouldBe` Just (GitIssue domain "guibou" "krank" 1)
+    let match = check [fmt|https://{domainName}/guibou/krank/issues/2|]
+    match `shouldBe` Just (GitIssue domain "guibou" "krank" 2)
   it "handles full http url" $ do
     let match = check [fmt|http://{domainName}/guibou/krank/issues/1|]
     match `shouldBe` Just (GitIssue domain "guibou" "krank" 1)
@@ -98,9 +97,9 @@ giturlTests domain = do
   it "fails on partial match (just missing the issue number)" $ do
     let match = check [fmt|{domainName}/guibou/krank/issues/|]
     match `shouldBe` Nothing
-  it "handles full https url" $ do
-    let match = check [fmt|https://{domainName}/guibou/krank/issues/2|]
-    match `shouldBe` Just (GitIssue domain "guibou" "krank" 2)
+  it "handles the odd /- in gitlab URL" $ do
+    let match = check [fmt|{domainName}/guibou/krank/-/issues/3|]
+    match `shouldBe` Just (GitIssue domain "guibou" "krank" 3)
 
 spec :: Spec
 spec = do
