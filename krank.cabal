@@ -75,14 +75,14 @@ test-suite krank-test
 executable krank
   main-is:             Main.hs
   build-depends:       base >=4.9
-                       , optparse-applicative >= 0.14
-                       , krank
-                       , pretty-terminal
-                       , pcre-heavy
-                       , text
                        , PyF
                        , containers
+                       , krank
                        , mtl
+                       , optparse-applicative >= 0.14
+                       , pcre-heavy
+                       , pretty-terminal
+                       , text
   hs-source-dirs:      app
   default-language:    Haskell2010
   ghc-options:         -Wall -threaded -rtsopts
