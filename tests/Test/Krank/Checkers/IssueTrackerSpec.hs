@@ -148,12 +148,12 @@ spec = do
       let Right res = runReaderT (runWriterT (unTestKrank $ runKrank ["foo", "bar"])) (env, config)
       res
         `shouldBe` ( (),
-                     ( ["\nfoo:1:12: error:\n  IssueTracker check for https://github.com/foo/bar/issues/10\n    now Closed\n\nfoo:2:1: info:\n  IssueTracker check for https://github.com/foo/bar/issues/11\n    still Open\n"] :: [Text],
+                     ( ["\nfoo:1:12: error:\n  IssueTracker check for https://github.com/foo/bar/issues/10\n    now Closed - You can remove the workaround you used there\n\nfoo:2:1: info:\n  IssueTracker check for https://github.com/foo/bar/issues/11\n    still Open\n"] :: [Text],
                        [ "Error when processing bar: user error (file not found)"
                        ] ::
                          [Text]
-                       )
                      )
+                   )
     it "ignore are ignored" $ do
       let config =
             KrankConfig
