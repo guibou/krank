@@ -207,7 +207,7 @@ issueToMessage ::
   Text
 issueToMessage i = case issueStatus i of
   Open -> [fmt|still Open|]
-  Closed -> [fmt|now Closed|]
+  Closed -> [fmt|now Closed - You can remove the workaround you used there|]
 
 issuePrintUrl :: GitIssue -> Text
 issuePrintUrl GitIssue {owner, repo, server, issueNum} = [fmt|IssueTracker check for https://{serverDomain server}/{owner}/{repo}/issues/{issueNum}|]
