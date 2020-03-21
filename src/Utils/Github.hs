@@ -6,6 +6,7 @@
 module Utils.Github
   ( showGithubException,
     githubAPILimitErrorText,
+    githubNotFoundErrorText,
   )
 where
 
@@ -16,6 +17,7 @@ import Data.Text (Text, isPrefixOf)
 import GHC.Generics (Generic)
 import qualified Network.HTTP.Client as Client
 import qualified Network.HTTP.Req as Req
+import Network.HTTP.Types (Status (..))
 import PyF (fmt)
 import Utils.Req (showHTTPException, showRawResponse)
 
@@ -46,11 +48,16 @@ handleGithubException ::
   ByteString ->
   Text
 handleGithubException resp body =
-  case err of
-    Just githubError -> showRawGithubMessage githubError
-    Nothing -> showRawResponse resp body
+  case statusCode (Client.responseStatus resp) of
+    400 -> tryShowNiceErr
+    404 -> githubNotFoundErrorText
+    403 -> tryShowNiceErr
+    _ -> showRawResponse resp body
   where
     err = decode $ fromStrict body :: Maybe GithubError
+    tryShowNiceErr = case err of
+      Just githubError -> showRawGithubMessage githubError
+      Nothing -> showRawResponse resp body
 
 showRawGithubMessage ::
   GithubError ->
@@ -60,6 +67,15 @@ showRawGithubMessage err
   | otherwise = [fmt|From Github: {msg}|]
   where
     msg = message err
+
+githubNotFoundErrorText :: Text
+githubNotFoundErrorText =
+  [fmt|\
+Could not find the indicated url.
+It's possible that you have mistyped the URL
+If not, this URL likely points to a private repository and you need to be authenticated to query its issues.
+You might want to provide a github API key with the --issuetracker-githubkey option.
+See https://github.com/guibou/krank/blob/master/docs/Checkers/IssueTracker.md#api-rate-limitation|]
 
 githubAPILimitErrorText :: Text
 githubAPILimitErrorText =
