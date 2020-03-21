@@ -41,13 +41,13 @@ spec = do
         let errorMsg = "API rate limit exceeded for 86.111.137.132. (But here's the good news: Authenticated requests get a higher rate limit. Check out the documentation for more details.)"
         let body = mkGithubErrorBody errorMsg
         let errorText = getErrorText body status403
-        (githubAPILimitErrorText `isInfixOf` errorText) `shouldBe` True
+        errorText `shouldSatisfy` isInfixOf githubAPILimitErrorText
     context "Github Private repo error" $ do
       it "Displays the specific message for private repo error errors" $ do
         let errorMsg = "Not Found"
         let body = mkGithubErrorBody errorMsg
         let errorText = getErrorText body status404
-        (githubNotFoundErrorText `isInfixOf` errorText) `shouldBe` True
+        errorText `shouldSatisfy` isInfixOf githubNotFoundErrorText
     context "Non-JSON response exception" $ do
       it "Shows the raw exception, through the generic helper" $ do
         let exception = JsonHttpException "JSON decoding failed"

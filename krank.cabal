@@ -58,6 +58,7 @@ test-suite krank-test
                        , bytestring
                        , containers
                        , hspec >= 2.7
+                       , hspec-expectations
                        , http-client >= 0.6
                        , http-types >= 0.12
                        , krank
