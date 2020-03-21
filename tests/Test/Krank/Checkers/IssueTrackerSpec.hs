@@ -40,6 +40,7 @@ newtype TestKrank t
 -- | "pure" instance of 'MonadKrank'
 -- It works on a 'TestEnv'.
 instance MonadKrank TestKrank where
+
   krankPutStrLnStderr t = TestKrank $ tell ([], [t])
 
   krankPutStr t = TestKrank $ tell ([t], [])
@@ -100,6 +101,12 @@ giturlTests domain = do
   it "handles the odd /- in gitlab URL" $ do
     let match = check [fmt|{domainName}/guibou/krank/-/issues/3|]
     match `shouldBe` Just (GitIssue domain "guibou" "krank" 3)
+  it "handles long gitlab url with groups" $ do
+    let match = check [fmt|{domainName}/gbataille_main/sub_level_1/sub_level_2/deep_in_groups/issues/3|]
+    match `shouldBe` Just (GitIssue domain "gbataille_main/sub_level_1/sub_level_2" "deep_in_groups" 3)
+  it "handles long gitlab url with groups and with the odd /-" $ do
+    let match = check [fmt|{domainName}/gbataille_main/sub_level_1/sub_level_2/deep_in_groups/-/issues/12|]
+    match `shouldBe` Just (GitIssue domain "gbataille_main/sub_level_1/sub_level_2" "deep_in_groups" 12)
 
 spec :: Spec
 spec = do
