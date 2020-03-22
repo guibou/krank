@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 
@@ -21,8 +22,6 @@ import Network.HTTP.Types (Status (..))
 import PyF (fmt)
 import Utils.Req (showHTTPException, showRawResponse)
 
-{- HLint ignore "Use newtype instead of data" -}
-
 -- | Represents a typical Github Error serialized as JSON like so:
 --
 -- @
@@ -30,11 +29,12 @@ import Utils.Req (showHTTPException, showRawResponse)
 --    "message": "the error reason"
 -- }
 -- @
-data GithubError
+newtype GithubError
   = GithubError
       { message :: Text
       }
-  deriving (Generic, Show, FromJSON, ToJSON)
+  deriving stock (Generic, Show)
+  deriving anyclass (FromJSON, ToJSON)
 
 -- | Uses the helper to show generic HTTP issues and provides a specific handler for Github
 -- "business" exceptions
