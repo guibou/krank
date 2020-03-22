@@ -22,6 +22,7 @@ rec {
     "docs"
     "docs/Checkers"
     "LICENSE"
+    ".hlint.yaml"
   ];
 
   # buildFromSdist ensures that the build will work on hackage

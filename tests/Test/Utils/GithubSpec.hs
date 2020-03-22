@@ -1,13 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
--- Leaving unnecessary do because
---  * they improve readability
---  * if you add a context, or an it, it'll still compile, without remembering that there was no do
---  before because at the time there was a single function inside
---  * without those do, ormolu does some formatting that looks crazy to me
-{- Hlint ignore "Redundant do" -}
-
 module Test.Utils.GithubSpec
   ( spec,
   )
