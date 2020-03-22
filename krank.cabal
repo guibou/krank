@@ -51,6 +51,7 @@ test-suite krank-test
   main-is:             Spec.hs
   other-modules:       Test.Krank.Checkers.IssueTrackerSpec
                        Test.Utils.GithubSpec
+                       Test.Utils.GitlabSpec
   build-tools:
   build-depends:       base
                        , PyF >= 0.8.1.0
