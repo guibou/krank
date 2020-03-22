@@ -75,7 +75,7 @@ Could not find the indicated url.
 It's possible that you have mistyped the URL
 If not, this URL likely points to a private repository and you need to be authenticated to query its issues.
 You might want to provide a github API key with the --issuetracker-githubkey option.
-See https://github.com/guibou/krank/blob/master/docs/Checkers/IssueTracker.md#api-rate-limitation|]
+See https://github.com/guibou/krank/blob/master/docs/Checkers/IssueTracker.md#private-repositories|]
 
 githubAPILimitErrorText :: Text
 githubAPILimitErrorText =
