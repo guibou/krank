@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 
@@ -32,7 +33,8 @@ newtype GithubError
   = GithubError
       { message :: Text
       }
-  deriving (Generic, Show, FromJSON, ToJSON)
+  deriving stock (Generic, Show)
+  deriving anyclass (FromJSON, ToJSON)
 
 -- | Uses the helper to show generic HTTP issues and provides a specific handler for Github
 -- "business" exceptions
