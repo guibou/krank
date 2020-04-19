@@ -16,6 +16,7 @@ import Control.Exception.Safe
 import Control.Monad.Reader
 import qualified Data.ByteString
 import Data.Coerce
+import qualified Data.Text as Text
 import qualified Data.Text.IO as Text.IO
 import Krank.Checkers.Ignore (filterViolations)
 import qualified Krank.Checkers.IssueTracker as IT
@@ -39,7 +40,7 @@ processFile filePath = do
   -- forcing to Normal Form (with deepseq) does not bring anymore improvement
   pure $! filtered
 
-runKrank :: MonadKrank m => [FilePath] -> m ()
+runKrank :: MonadKrank m => [FilePath] -> m Bool
 runKrank paths = do
   KrankConfig {useColors} <- krankAsks id
   res <- krankForConcurrently paths $ \path ->
@@ -48,6 +49,17 @@ runKrank paths = do
   forM_ res $ \case
     Left err -> krankPutStrLnStderr err
     Right violations -> krankPutStr (foldMap (showViolation useColors) violations)
+  -- Check if any violation is an error
+  pure $ all (not . isError) res
+
+-- | Returns 'True' if any violation level is error or if any error occurs.
+isError :: Either Text.Text [Violation] -> Bool
+isError (Left _) = True
+isError (Right violations) = any isViolationError violations
+
+isViolationError :: Violation -> Bool
+isViolationError Violation {level = Error} = True
+isViolationError _ = False
 
 -- | This just exists to avoid the orphan instance on MonadKrank
 newtype Krank t = Krank {unKrank :: ReaderT KrankConfig IO t}
