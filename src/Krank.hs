@@ -67,7 +67,6 @@ newtype Krank t = Krank {unKrank :: ReaderT KrankConfig IO t}
 
 -- | The real monad implementation for Krank
 instance MonadKrank Krank where
-
   krankReadFile = Krank . liftIO . Data.ByteString.readFile
 
   krankAsks = Krank . asks
