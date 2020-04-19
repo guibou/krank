@@ -50,7 +50,7 @@ runKrank paths = do
     Left err -> krankPutStrLnStderr err
     Right violations -> krankPutStr (foldMap (showViolation useColors) violations)
   -- Check if any violation is an error
-  pure $ all (not . isError) res
+  pure $ not (any isError res)
 
 -- | Returns 'True' if any violation level is error or if any error occurs.
 isError :: Either Text.Text [Violation] -> Bool
@@ -67,7 +67,6 @@ newtype Krank t = Krank {unKrank :: ReaderT KrankConfig IO t}
 
 -- | The real monad implementation for Krank
 instance MonadKrank Krank where
-
   krankReadFile = Krank . liftIO . Data.ByteString.readFile
 
   krankAsks = Krank . asks

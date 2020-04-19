@@ -40,7 +40,6 @@ newtype TestKrank t
 -- | "pure" instance of 'MonadKrank'
 -- It works on a 'TestEnv'.
 instance MonadKrank TestKrank where
-
   krankPutStrLnStderr t = TestKrank $ tell ([], [t])
 
   krankPutStr t = TestKrank $ tell ([t], [])

@@ -30,13 +30,22 @@ rec {
   krankBuilder = hPkgs: haskell.lib.buildFromSdist (hPkgs.callCabal2nix "krank" sources {});
 
   krank_86 = krankBuilder haskell.packages.ghc865;
-  krank_88 = krankBuilder (haskell.packages.ghc881.override { overrides = self: super: {
-    # RSA < 2.4 does not build with GHC 8.8
-    RSA = super.RSA_2_4_1;
-  };});
+  krank_88 = krankBuilder haskell.packages.ghc883;
+  krank_810 = krankBuilder (haskell.packages.ghc8101.override {
+    overrides = self: super: with pkgs.haskell.lib; {
+      language-haskell-extract = doJailbreak (super.language-haskell-extract.overrideAttrs(o: {
+        patches = (o.patches or []) ++ [
+          (pkgs.fetchpatch
+            {
+              url = https://gitlab.haskell.org/ghc/head.hackage/-/raw/master/patches/language-haskell-extract-0.2.4.patch;
+              sha256 = "0rgzrq0513nlc1vw7nw4km4bcwn4ivxcgi33jly4a7n3c1r32v1f";
+            })];
+      }));
+    };
+  });
 
   # default is latest GHC
-  krank = krank_88;
+  krank = krank_810;
 
   # Run hlint on the codebase
   hlint = runCommand "hlint-krank" {

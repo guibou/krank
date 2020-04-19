@@ -17,11 +17,14 @@ jobs:
           name: Check hlint
           command: nix-build -A hlint
       - run:
-          name: Build current GHC (8.8)
+          name: Build current GHC (8.10)
           command: nix-build -A krank
       - run:
           name: Build GHC 8.6
           command: nix-build -A krank_86
+      - run:
+          name: Build GHC 8.8
+          command: nix-build -A krank_88
       - run:
           name: Check ormolu
           command: nix-build -A ormolu

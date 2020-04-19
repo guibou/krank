@@ -74,7 +74,6 @@ data KrankConfig
 
 -- | This monad represents all the effect that Krank needs
 class (Monad m, MonadCatch m) => MonadKrank m where
-
   -- | Run a REST requet
   krankRunRESTRequest :: FromJSON t => Req.Url 'Req.Https -> Req.Option 'Req.Https -> m t
 
