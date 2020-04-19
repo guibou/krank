@@ -25,3 +25,7 @@ Should work.
 # Hacking
 
 Edit code, ensure that test are passing and open a pull request on Github. Thank you ;)
+
+- `nix-build -A krank` will build it
+- `nix-build -A ormolu` will check formatting using ormolu. You can use `nix-shell -A ormolu-fix` to fix your code.
+- `nix-build -A hlint` will lint with hlint. You can use `nix-shell -A hlint-fix` to fix your code.
