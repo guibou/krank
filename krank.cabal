@@ -53,7 +53,7 @@ test-suite krank-test
                        Test.Utils.GithubSpec
                        Test.Utils.GitlabSpec
   build-tools:
-  build-depends:       base
+  build-depends:       base >= 4.9 && <= 5.0
                        , PyF >= 0.8.1.0
                        , aeson
                        , bytestring
@@ -75,7 +75,7 @@ test-suite krank-test
 
 executable krank
   main-is:             Main.hs
-  build-depends:       base >=4.9
+  build-depends:       base >=4.9 && <= 5.0
                        , PyF
                        , containers
                        , krank
