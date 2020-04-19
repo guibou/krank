@@ -30,10 +30,7 @@ rec {
   krankBuilder = hPkgs: haskell.lib.buildFromSdist (hPkgs.callCabal2nix "krank" sources {});
 
   krank_86 = krankBuilder haskell.packages.ghc865;
-  krank_88 = krankBuilder (haskell.packages.ghc881.override { overrides = self: super: {
-    # RSA < 2.4 does not build with GHC 8.8
-    RSA = super.RSA_2_4_1;
-  };});
+  krank_88 = krankBuilder haskell.packages.ghc883;
 
   # default is latest GHC
   krank = krank_88;
