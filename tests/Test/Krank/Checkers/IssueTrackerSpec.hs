@@ -216,3 +216,17 @@ spec = do
                          [Text]
                      )
                    )
+  describe "it parses when there is two url on the same line" $ do
+    it "works correctly with only one in second position" $ do
+      extractIssues "foo" "https://ip.tyk.nu https://github.com/x/x/issues/32"
+        `shouldBe` [ Localized (SourcePos "foo" 1 19) (GitIssue Github "x" "x" 32)
+                   ]
+    it "works correctly with only one in first position" $ do
+      extractIssues "foo" "foo bar baz https://github.com/x/x/issues/32 https://ip.tyk.nu"
+        `shouldBe` [ Localized (SourcePos "foo" 1 13) (GitIssue Github "x" "x" 32)
+                   ]
+    it "works correctly with two correct url" $ do
+      extractIssues "foo" "foo gitlab.com/foo/br/issues/10 https://github.com/x/x/issues/32 https://ip.tyk.nu"
+        `shouldBe` [ Localized (SourcePos "foo" 1 5) (GitIssue (Gitlab (GitlabHost "gitlab.com")) "foo" "br" 10),
+                     Localized (SourcePos "foo" 1 33) (GitIssue Github "x" "x" 32)
+                   ]
