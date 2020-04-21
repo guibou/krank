@@ -65,7 +65,7 @@ serverDomain (Gitlab (GitlabHost h)) = h
 gitRepoRe :: RE.Regex
 -- NOTE: \b at the beginning is really import for performances
 -- because it dramatically reduces the number of backtracks
-gitRepoRe = [RE.re|\b(?>https?://)?(?>www\.)?([^/ ]+)/(.*)/([^-][^/]*)(?>/-)?/issues/([0-9]+)|]
+gitRepoRe = [RE.re|\b(?>https?://)?(?>www\.)?([^/ ]+)/([^ ]+)/([^- ][^/ ]*)(?>/-)?/issues/([0-9]+)|]
 
 -- | Extract all issues on one line and returns a list of the raw text associated with an issue
 extractIssuesOnALine :: ByteString -> [(Int, GitIssue)]
