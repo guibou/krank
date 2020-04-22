@@ -7,13 +7,13 @@ Krank checks your code source comments for important markers.
 
 Comments are part of our code and are not usually tested
 correctly. Hence their content can become incoherent or
-obsolete. Krank tries to avoid that by running checkers on the comment
+obsolete. Krank tries to avoid that by running checkers on the comments
 themselves.
 
 # Usage
 
 Just launch the `krank` command with a list of files as arguments. It
-works on any kind of source code file and print a reports of
+works on any kind of source code file and prints a report of
 informations found in the comments:
 
 ```bash
