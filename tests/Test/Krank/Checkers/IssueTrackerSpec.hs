@@ -190,14 +190,14 @@ spec = do
                      )
                    )
     it "ignore are ignored" $ do
-      let config =
+      let testConfig =
             KrankConfig
               { githubKey = Nothing,
                 gitlabKeys = Map.empty,
                 dryRun = False,
                 useColors = False
               }
-          env =
+          testEnv =
             TestEnv
               { envFiles = Map.singleton "foo" " hello you https://github.com/foo/bar/issues/10 yeah# krank:ignore-line\nhttps://github.com/foo/bar/issues/11",
                 envRestAnswers =
@@ -206,7 +206,7 @@ spec = do
                       (Req.https "api.github.com" Req./: "repos" Req./: "foo" Req./: "bar" Req./: "issues" Req./: "11", Right $ object [("state", String "open")])
                     ]
               }
-      let Right res = runReaderT (runWriterT (unTestKrank $ runKrank ["foo", "bar"])) (env, config)
+      let Right res = runReaderT (runWriterT (unTestKrank $ runKrank ["foo", "bar"])) (testEnv, testConfig)
       -- TODO: perhaps ignored lines must appears in the listing, but not as error
       res
         `shouldBe` ( False,
