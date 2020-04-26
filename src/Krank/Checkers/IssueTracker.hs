@@ -51,7 +51,8 @@ data GitIssueRef
 data GitIssueData
   = GitIssueData
       { gitIssue :: Localized GitIssueRef,
-        issueStatus :: IssueStatus
+        issueStatus :: IssueStatus,
+        issueTitle :: Text
       }
   deriving (Eq, Show)
 
@@ -174,6 +175,17 @@ statusParser (AesonT.Object o) = do
     readState (AesonT.Error _) = Left $ errorParser o
 statusParser _ = Left "invalid JSON"
 
+titleParser ::
+  Value ->
+  Either Text Text
+titleParser (AesonT.Object o) = do
+  let title :: AesonT.Result String = AesonT.parse (.: "title") o
+  Right $ readTitle title
+  where
+    readTitle (AesonT.Success title) = pack title
+    readTitle (AesonT.Error _) = "invalid JSON"
+titleParser _ = Left "invalid JSON"
+
 errorParser ::
   AesonT.Object ->
   Text
@@ -189,11 +201,14 @@ gitIssuesWithStatus ::
   [Localized GitIssueRef] ->
   m [Either (Text, Localized GitIssueRef) GitIssueData]
 gitIssuesWithStatus issues = do
-  statuses <- krankMapConcurrently restIssue issues
-  pure $ zipWith f issues (fmap statusParser statuses)
+  jsonData <- krankMapConcurrently restIssue issues
+  let statuses = fmap statusParser jsonData
+  let titles = fmap titleParser jsonData
+  pure $ zipWith3 f issues statuses titles
   where
-    f issue (Left err) = Left (err, issue)
-    f issue (Right is) = Right $ GitIssueData issue is
+    f issue (Left err) _ = Left (err, issue)
+    f issue _ (Left err) = Left (err, issue)
+    f issue (Right status) (Right title) = Right $ GitIssueData issue status title
 
 issueToLevel ::
   GitIssueData ->
