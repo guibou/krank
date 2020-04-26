@@ -8,7 +8,7 @@
 {-# LANGUAGE ViewPatterns #-}
 
 module Krank.Checkers.IssueTracker
-  ( GitIssue (..),
+  ( GitIssueRef (..),
     GitServer (..),
     Localized (..),
     checkText,
@@ -39,8 +39,8 @@ data GitServer = Github | Gitlab GitlabHost
 
 data IssueStatus = Open | Closed deriving (Eq, Show)
 
-data GitIssue
-  = GitIssue
+data GitIssueRef
+  = GitIssueRef
       { server :: GitServer,
         owner :: Text,
         repo :: Text,
@@ -50,7 +50,7 @@ data GitIssue
 
 data GitIssueWithStatus
   = GitIssueWithStatus
-      { gitIssue :: Localized GitIssue,
+      { gitIssue :: Localized GitIssueRef,
         issueStatus :: IssueStatus
       }
   deriving (Eq, Show)
@@ -68,10 +68,10 @@ gitRepoRe :: RE.Regex
 gitRepoRe = [RE.re|\b(?>https?://)?(?>www\.)?([^/ ]+)/([^ ]+)/([^- ][^/ ]*)(?>/-)?/issues/([0-9]+)|]
 
 -- | Extract all issues on one line and returns a list of the raw text associated with an issue
-extractIssuesOnALine :: ByteString -> [(Int, GitIssue)]
+extractIssuesOnALine :: ByteString -> [(Int, GitIssueRef)]
 extractIssuesOnALine lineContent = map f (RE.scan gitRepoRe lineContent)
   where
-    f (match, [domain, owner, repo, ByteString.readInt -> Just (issueNo, _)]) = (colNo, GitIssue provider (Text.Encoding.decodeUtf8 owner) (Text.Encoding.decodeUtf8 repo) issueNo)
+    f (match, [domain, owner, repo, ByteString.readInt -> Just (issueNo, _)]) = (colNo, GitIssueRef provider (Text.Encoding.decodeUtf8 owner) (Text.Encoding.decodeUtf8 repo) issueNo)
       where
         colNo = 1 + ByteString.length (fst $ ByteString.breakSubstring match lineContent)
         provider
@@ -97,7 +97,7 @@ extractIssues ::
   FilePath ->
   -- | Content of the file
   ByteString ->
-  [Localized GitIssue]
+  [Localized GitIssueRef]
 extractIssues filePath toCheck = concat (zipWith extract [1 ..] (ByteString.lines toCheck))
   where
     extract lineNo lineContent = map f (extractIssuesOnALine lineContent)
@@ -106,7 +106,7 @@ extractIssues filePath toCheck = concat (zipWith extract [1 ..] (ByteString.line
 
 -- Supports only github for the moment
 issueUrl ::
-  GitIssue ->
+  GitIssueRef ->
   Req.Url 'Req.Https
 issueUrl issue = case server issue of
   Github -> Req.https "api.github.com" Req./: "repos" Req./: owner issue Req./: repo issue Req./: "issues" Req./~ issueNum issue
@@ -115,7 +115,7 @@ issueUrl issue = case server issue of
 -- try Issue can fail, on non-2xx HTTP response
 tryRestIssue ::
   MonadKrank m =>
-  Localized GitIssue ->
+  Localized GitIssueRef ->
   m Value
 tryRestIssue locIssue = do
   let issue = unLocalized locIssue
@@ -125,7 +125,7 @@ tryRestIssue locIssue = do
 
 headersFor ::
   MonadKrank m =>
-  GitIssue ->
+  GitIssueRef ->
   m (Req.Option 'Req.Https)
 headersFor issue = do
   mGithubKey <- krankAsks githubKey
@@ -155,7 +155,7 @@ showGitServerException (Gitlab _) exc = showGitlabException exc
 
 restIssue ::
   MonadKrank m =>
-  Localized GitIssue ->
+  Localized GitIssueRef ->
   m Value
 restIssue issue = catch (tryRestIssue issue) (httpExcHandler . server . unLocalized $ issue)
 
@@ -186,8 +186,8 @@ errorParser o = do
 
 gitIssuesWithStatus ::
   MonadKrank m =>
-  [Localized GitIssue] ->
-  m [Either (Text, Localized GitIssue) GitIssueWithStatus]
+  [Localized GitIssueRef] ->
+  m [Either (Text, Localized GitIssueRef) GitIssueWithStatus]
 gitIssuesWithStatus issues = do
   statuses <- krankMapConcurrently restIssue issues
   pure $ zipWith f issues (fmap statusParser statuses)
@@ -209,8 +209,8 @@ issueToMessage i = case issueStatus i of
   Open -> [fmt|still Open|]
   Closed -> [fmt|now Closed - You can remove the workaround you used there|]
 
-issuePrintUrl :: GitIssue -> Text
-issuePrintUrl GitIssue {owner, repo, server, issueNum} = [fmt|IssueTracker check for https://{serverDomain server}/{owner}/{repo}/issues/{issueNum}|]
+issuePrintUrl :: GitIssueRef -> Text
+issuePrintUrl GitIssueRef {owner, repo, server, issueNum} = [fmt|IssueTracker check for https://{serverDomain server}/{owner}/{repo}/issues/{issueNum}|]
 
 checkText ::
   MonadKrank m =>
@@ -229,7 +229,7 @@ checkText path t = do
                 { checker = issuePrintUrl . unLocalized $ issue,
                   level = Info,
                   message = "Dry run",
-                  location = getLocation (issue :: Localized GitIssue)
+                  location = getLocation (issue :: Localized GitIssueRef)
                 }
           )
           issues
@@ -242,12 +242,12 @@ checkText path t = do
         { checker = issuePrintUrl . unLocalized $ issue,
           level = Warning,
           message = "Error when calling the API:\n" <> err,
-          location = getLocation (issue :: Localized GitIssue)
+          location = getLocation (issue :: Localized GitIssueRef)
         }
     f (Right issue) =
       Violation
         { checker = issuePrintUrl (unLocalized . gitIssue $ issue),
           level = issueToLevel issue,
           message = issueToMessage issue,
-          location = getLocation (gitIssue issue :: Localized GitIssue)
+          location = getLocation (gitIssue issue :: Localized GitIssueRef)
         }

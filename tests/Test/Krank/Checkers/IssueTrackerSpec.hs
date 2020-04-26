@@ -65,7 +65,7 @@ instance MonadKrank TestKrank where
           Data.Aeson.Error s -> throw (Req.JsonHttpException s)
         Left exception -> throw exception
 
-check :: ByteString -> Maybe GitIssue
+check :: ByteString -> Maybe GitIssueRef
 check a = case extractIssuesOnALine a of
   [(_, x)] -> Just x
   _ -> Nothing
@@ -75,19 +75,19 @@ giturlTests domain = do
   let domainName = serverDomain domain
   it "handles full https url" $ do
     let match = check [fmt|https://{domainName}/guibou/krank/issues/2|]
-    match `shouldBe` Just (GitIssue domain "guibou" "krank" 2)
+    match `shouldBe` Just (GitIssueRef domain "guibou" "krank" 2)
   it "handles full http url" $ do
     let match = check [fmt|http://{domainName}/guibou/krank/issues/1|]
-    match `shouldBe` Just (GitIssue domain "guibou" "krank" 1)
+    match `shouldBe` Just (GitIssueRef domain "guibou" "krank" 1)
   it "handles short url - no protocol" $ do
     let match = check [fmt|{domainName}/guibou/krank/issues/1|]
-    match `shouldBe` Just (GitIssue domain "guibou" "krank" 1)
+    match `shouldBe` Just (GitIssueRef domain "guibou" "krank" 1)
   it "accepts www. in url" $ do
     let match = check [fmt|https://www.{domainName}/guibou/krank/issues/1|]
-    match `shouldBe` Just (GitIssue domain "guibou" "krank" 1)
+    match `shouldBe` Just (GitIssueRef domain "guibou" "krank" 1)
   it "accepts www in url - no protocol" $ do
     let match = check [fmt|www.{domainName}/guibou/krank/issues/1|]
-    match `shouldBe` Just (GitIssue domain "guibou" "krank" 1)
+    match `shouldBe` Just (GitIssueRef domain "guibou" "krank" 1)
   it "fails if the issue number is not an int" $ do
     let match = check [fmt|{domainName}/guibou/krank/issues/foo|]
     match `shouldBe` Nothing
@@ -99,13 +99,13 @@ giturlTests domain = do
     match `shouldBe` Nothing
   it "handles the odd /- in gitlab URL" $ do
     let match = check [fmt|{domainName}/guibou/krank/-/issues/3|]
-    match `shouldBe` Just (GitIssue domain "guibou" "krank" 3)
+    match `shouldBe` Just (GitIssueRef domain "guibou" "krank" 3)
   it "handles long gitlab url with groups" $ do
     let match = check [fmt|{domainName}/gbataille_main/sub_level_1/sub_level_2/deep_in_groups/issues/3|]
-    match `shouldBe` Just (GitIssue domain "gbataille_main/sub_level_1/sub_level_2" "deep_in_groups" 3)
+    match `shouldBe` Just (GitIssueRef domain "gbataille_main/sub_level_1/sub_level_2" "deep_in_groups" 3)
   it "handles long gitlab url with groups and with the odd /-" $ do
     let match = check [fmt|{domainName}/gbataille_main/sub_level_1/sub_level_2/deep_in_groups/-/issues/12|]
-    match `shouldBe` Just (GitIssue domain "gbataille_main/sub_level_1/sub_level_2" "deep_in_groups" 12)
+    match `shouldBe` Just (GitIssueRef domain "gbataille_main/sub_level_1/sub_level_2" "deep_in_groups" 12)
 
 spec :: Spec
 spec = do
@@ -127,10 +127,10 @@ spec = do
         lalala https://gitlab.haskell.org/ghc/ghc/issues/16955
         |]
         match
-          `shouldMatchList` [ Localized (SourcePos "localFile" 1 1) $ GitIssue Github "guibou" "krank" 2,
-                              Localized (SourcePos "localFile" 3 9) $ GitIssue (Gitlab (GitlabHost "gitlab.com")) "gitlab-org" "gitlab-foss" 67390,
-                              Localized (SourcePos "localFile" 4 25) $ GitIssue Github "guibou" "krank" 1,
-                              Localized (SourcePos "localFile" 5 16) $ GitIssue (Gitlab (GitlabHost "gitlab.haskell.org")) "ghc" "ghc" 16955
+          `shouldMatchList` [ Localized (SourcePos "localFile" 1 1) $ GitIssueRef Github "guibou" "krank" 2,
+                              Localized (SourcePos "localFile" 3 9) $ GitIssueRef (Gitlab (GitlabHost "gitlab.com")) "gitlab-org" "gitlab-foss" 67390,
+                              Localized (SourcePos "localFile" 4 25) $ GitIssueRef Github "guibou" "krank" 1,
+                              Localized (SourcePos "localFile" 5 16) $ GitIssueRef (Gitlab (GitlabHost "gitlab.haskell.org")) "ghc" "ghc" 16955
                             ]
   describe "huge test" $ do
     let config =
@@ -219,14 +219,14 @@ spec = do
   describe "it parses when there is two url on the same line" $ do
     it "works correctly with only one in second position" $ do
       extractIssues "foo" "https://ip.tyk.nu https://github.com/x/x/issues/32"
-        `shouldBe` [ Localized (SourcePos "foo" 1 19) (GitIssue Github "x" "x" 32)
+        `shouldBe` [ Localized (SourcePos "foo" 1 19) (GitIssueRef Github "x" "x" 32)
                    ]
     it "works correctly with only one in first position" $ do
       extractIssues "foo" "foo bar baz https://github.com/x/x/issues/32 https://ip.tyk.nu"
-        `shouldBe` [ Localized (SourcePos "foo" 1 13) (GitIssue Github "x" "x" 32)
+        `shouldBe` [ Localized (SourcePos "foo" 1 13) (GitIssueRef Github "x" "x" 32)
                    ]
     it "works correctly with two correct url" $ do
       extractIssues "foo" "foo gitlab.com/foo/br/issues/10 https://github.com/x/x/issues/32 https://ip.tyk.nu"
-        `shouldBe` [ Localized (SourcePos "foo" 1 5) (GitIssue (Gitlab (GitlabHost "gitlab.com")) "foo" "br" 10),
-                     Localized (SourcePos "foo" 1 33) (GitIssue Github "x" "x" 32)
+        `shouldBe` [ Localized (SourcePos "foo" 1 5) (GitIssueRef (Gitlab (GitlabHost "gitlab.com")) "foo" "br" 10),
+                     Localized (SourcePos "foo" 1 33) (GitIssueRef Github "x" "x" 32)
                    ]
