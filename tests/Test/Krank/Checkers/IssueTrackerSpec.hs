@@ -140,38 +140,42 @@ spec = do
               dryRun = False,
               useColors = False
             }
-        env state10 =
+        env state10 title10 title11 =
           TestEnv
             { envFiles = Map.singleton "foo" " hello you https://github.com/foo/bar/issues/10 yeah\nhttps://github.com/foo/bar/issues/11",
               envRestAnswers =
                 Map.fromList
-                  [ (Req.https "api.github.com" Req./: "repos" Req./: "foo" Req./: "bar" Req./: "issues" Req./: "10", Right $ object [("state", String state10)]),
-                    (Req.https "api.github.com" Req./: "repos" Req./: "foo" Req./: "bar" Req./: "issues" Req./: "11", Right $ object [("state", String "open")])
+                  [ (Req.https "api.github.com" Req./: "repos" Req./: "foo" Req./: "bar" Req./: "issues" Req./: "10", Right $ object [("state", String state10), ("title", String title10)]),
+                    (Req.https "api.github.com" Req./: "repos" Req./: "foo" Req./: "bar" Req./: "issues" Req./: "11", Right $ object [("state", String "open"), ("title", String title11)])
                   ]
             }
     it "should work" $ do
-      let Right res = runReaderT (runWriterT (unTestKrank $ runKrank ["foo", "bar"])) (env "closed", config)
+      let firstIssueTitle = "fooobar"
+      let secondIssueTitle = "barbaz"
+      let Right res = runReaderT (runWriterT (unTestKrank $ runKrank ["foo", "bar"])) (env "closed" firstIssueTitle secondIssueTitle, config)
       res
         `shouldBe` ( False,
-                     ( ["\nfoo:1:12: error:\n  IssueTracker check for https://github.com/foo/bar/issues/10\n    now Closed - You can remove the workaround you used there\n\nfoo:2:1: info:\n  IssueTracker check for https://github.com/foo/bar/issues/11\n    still Open\n"] :: [Text],
-                       [ "Error when processing bar: user error (file not found)"
-                       ] ::
-                         [Text]
+                     ( [[fmt|\nfoo:1:12: error:\n  IssueTracker check for https://github.com/foo/bar/issues/10\n    the issue is now Closed - You can remove the workaround you used there\n    | title: {firstIssueTitle}\n\nfoo:2:1: info:\n  IssueTracker check for https://github.com/foo/bar/issues/11\n    the issue is still Open\n    | title: {secondIssueTitle}\n|]] :: [Text],
+                       ["Error when processing bar: user error (file not found)"] :: [Text]
                      )
                    )
     it "with error in url" $ do
-      let Right res = runReaderT (runWriterT (unTestKrank $ runKrank ["foo"])) (env "closed", config)
+      let firstIssueTitle = "barbouze"
+      let secondIssueTitle = "bouya"
+      let Right res = runReaderT (runWriterT (unTestKrank $ runKrank ["foo"])) (env "closed" firstIssueTitle secondIssueTitle, config)
       res
         `shouldBe` ( False,
-                     ( ["\nfoo:1:12: error:\n  IssueTracker check for https://github.com/foo/bar/issues/10\n    now Closed - You can remove the workaround you used there\n\nfoo:2:1: info:\n  IssueTracker check for https://github.com/foo/bar/issues/11\n    still Open\n"],
+                     ( [[fmt|\nfoo:1:12: error:\n  IssueTracker check for https://github.com/foo/bar/issues/10\n    the issue is now Closed - You can remove the workaround you used there\n    | title: {firstIssueTitle}\n\nfoo:2:1: info:\n  IssueTracker check for https://github.com/foo/bar/issues/11\n    the issue is still Open\n    | title: {secondIssueTitle}\n|]],
                        [] :: [Text]
                      )
                    )
     it "with error in file" $ do
-      let Right res = runReaderT (runWriterT (unTestKrank $ runKrank ["foo", "bar"])) (env "open", config)
+      let firstIssueTitle = "yazu"
+      let secondIssueTitle = "zuma"
+      let Right res = runReaderT (runWriterT (unTestKrank $ runKrank ["foo", "bar"])) (env "open" firstIssueTitle secondIssueTitle, config)
       res
         `shouldBe` ( False,
-                     ( ["\nfoo:1:12: info:\n  IssueTracker check for https://github.com/foo/bar/issues/10\n    still Open\n\nfoo:2:1: info:\n  IssueTracker check for https://github.com/foo/bar/issues/11\n    still Open\n"] :: [Text],
+                     ( [[fmt|\nfoo:1:12: info:\n  IssueTracker check for https://github.com/foo/bar/issues/10\n    the issue is still Open\n    | title: {firstIssueTitle}\n\nfoo:2:1: info:\n  IssueTracker check for https://github.com/foo/bar/issues/11\n    the issue is still Open\n    | title: {secondIssueTitle}\n|]] :: [Text],
                        [ "Error when processing bar: user error (file not found)"
                        ] ::
                          [Text]
@@ -182,14 +186,18 @@ spec = do
     -- works correctly.
     -- Or we need to move more things inside the Krank monad, such as "exitFailure".
     it "without error" $ do
-      let Right res = runReaderT (runWriterT (unTestKrank $ runKrank ["foo"])) (env "open", config)
+      let firstIssueTitle = "malaria"
+      let secondIssueTitle = "ria riu rio"
+      let Right res = runReaderT (runWriterT (unTestKrank $ runKrank ["foo"])) (env "open" firstIssueTitle secondIssueTitle, config)
       res
         `shouldBe` ( True,
-                     ( ["\nfoo:1:12: info:\n  IssueTracker check for https://github.com/foo/bar/issues/10\n    still Open\n\nfoo:2:1: info:\n  IssueTracker check for https://github.com/foo/bar/issues/11\n    still Open\n"] :: [Text],
+                     ( [[fmt|\nfoo:1:12: info:\n  IssueTracker check for https://github.com/foo/bar/issues/10\n    the issue is still Open\n    | title: {firstIssueTitle}\n\nfoo:2:1: info:\n  IssueTracker check for https://github.com/foo/bar/issues/11\n    the issue is still Open\n    | title: {secondIssueTitle}\n|]] :: [Text],
                        [] :: [Text]
                      )
                    )
     it "ignore are ignored" $ do
+      let firstIssueTitle = "rio del mare"
+      let secondIssueTitle = "margulin"
       let testConfig =
             KrankConfig
               { githubKey = Nothing,
@@ -202,15 +210,15 @@ spec = do
               { envFiles = Map.singleton "foo" " hello you https://github.com/foo/bar/issues/10 yeah# krank:ignore-line\nhttps://github.com/foo/bar/issues/11",
                 envRestAnswers =
                   Map.fromList
-                    [ (Req.https "api.github.com" Req./: "repos" Req./: "foo" Req./: "bar" Req./: "issues" Req./: "10", Right $ object [("state", String "closed")]),
-                      (Req.https "api.github.com" Req./: "repos" Req./: "foo" Req./: "bar" Req./: "issues" Req./: "11", Right $ object [("state", String "open")])
+                    [ (Req.https "api.github.com" Req./: "repos" Req./: "foo" Req./: "bar" Req./: "issues" Req./: "10", Right $ object [("state", String "closed"), ("title", String firstIssueTitle)]),
+                      (Req.https "api.github.com" Req./: "repos" Req./: "foo" Req./: "bar" Req./: "issues" Req./: "11", Right $ object [("state", String "open"), ("title", String secondIssueTitle)])
                     ]
               }
       let Right res = runReaderT (runWriterT (unTestKrank $ runKrank ["foo", "bar"])) (testEnv, testConfig)
       -- TODO: perhaps ignored lines must appears in the listing, but not as error
       res
         `shouldBe` ( False,
-                     ( ["\nfoo:2:1: info:\n  IssueTracker check for https://github.com/foo/bar/issues/11\n    still Open\n"] :: [Text],
+                     ( [[fmt|\nfoo:2:1: info:\n  IssueTracker check for https://github.com/foo/bar/issues/11\n    the issue is still Open\n    | title: {secondIssueTitle}\n|]] :: [Text],
                        [ "Error when processing bar: user error (file not found)"
                        ] ::
                          [Text]

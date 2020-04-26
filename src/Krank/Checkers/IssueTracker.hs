@@ -220,9 +220,12 @@ issueToLevel i = case issueStatus i of
 issueToMessage ::
   GitIssueData ->
   Text
-issueToMessage i = case issueStatus i of
-  Open -> [fmt|still Open|]
-  Closed -> [fmt|now Closed - You can remove the workaround you used there|]
+issueToMessage i =
+  case issueStatus i of
+    Open -> [fmt|the issue is still Open\ntitle: {title}|]
+    Closed -> [fmt|the issue is now Closed - You can remove the workaround you used there\ntitle: {title}|]
+  where
+    title = issueTitle i
 
 issuePrintUrl :: GitIssueRef -> Text
 issuePrintUrl GitIssueRef {owner, repo, server, issueNum} = [fmt|IssueTracker check for https://{serverDomain server}/{owner}/{repo}/issues/{issueNum}|]
