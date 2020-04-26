@@ -48,8 +48,8 @@ data GitIssueRef
       }
   deriving (Eq, Show)
 
-data GitIssueWithStatus
-  = GitIssueWithStatus
+data GitIssueData
+  = GitIssueData
       { gitIssue :: Localized GitIssueRef,
         issueStatus :: IssueStatus
       }
@@ -187,23 +187,23 @@ errorParser o = do
 gitIssuesWithStatus ::
   MonadKrank m =>
   [Localized GitIssueRef] ->
-  m [Either (Text, Localized GitIssueRef) GitIssueWithStatus]
+  m [Either (Text, Localized GitIssueRef) GitIssueData]
 gitIssuesWithStatus issues = do
   statuses <- krankMapConcurrently restIssue issues
   pure $ zipWith f issues (fmap statusParser statuses)
   where
     f issue (Left err) = Left (err, issue)
-    f issue (Right is) = Right $ GitIssueWithStatus issue is
+    f issue (Right is) = Right $ GitIssueData issue is
 
 issueToLevel ::
-  GitIssueWithStatus ->
+  GitIssueData ->
   ViolationLevel
 issueToLevel i = case issueStatus i of
   Open -> Info
   Closed -> Error
 
 issueToMessage ::
-  GitIssueWithStatus ->
+  GitIssueData ->
   Text
 issueToMessage i = case issueStatus i of
   Open -> [fmt|still Open|]
