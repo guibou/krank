@@ -1,5 +1,10 @@
 # Revision history for krank
 
+## 0.2.1 -- 2020-05-02
+
+* #76 fix. ignore space in URL
+* Output now includes the issue title.
+
 ## 0.2.0 -- 2020-04-19
 
 * GHC 8.10 support
