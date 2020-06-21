@@ -47,6 +47,8 @@ library
                        Utils.Github
                        Utils.Gitlab
                        Utils.Req
+                       Version
+  other-modules:       Paths_krank
 
 test-suite krank-test
   import: shared-library

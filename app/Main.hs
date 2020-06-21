@@ -14,6 +14,7 @@ import PyF (fmt)
 import System.Console.Pretty (supportsPretty)
 import System.Exit (exitFailure)
 import Text.Regex.PCRE.Heavy
+import Version (displayVersion)
 
 data KrankOpts
   = KrankOpts
@@ -58,6 +59,14 @@ noColorParse =
           <> Opt.help "Disable colored outputs"
       )
 
+versionParse :: Opt.Parser (a -> a)
+versionParse =
+  Opt.infoOption
+    displayVersion
+    ( Opt.long "version"
+        <> Opt.help "Displays the version of the program"
+    )
+
 optionsParser :: Opt.Parser KrankOpts
 optionsParser =
   KrankOpts
@@ -75,7 +84,7 @@ optionsParser =
 opts :: Opt.ParserInfo KrankOpts
 opts =
   Opt.info
-    (optionsParser <**> Opt.helper)
+    (optionsParser <**> Opt.helper <**> versionParse)
     ( Opt.fullDesc
         <> Opt.progDesc "Checks the comments in FILES"
         <> Opt.header "krank - a comment linter / analytics tool"
@@ -84,7 +93,7 @@ opts =
 main :: IO ()
 main = do
   canUseColor <- supportsPretty
-  config <- Opt.execParser opts
+  config <- Opt.customExecParser (Opt.prefs Opt.showHelpOnError) opts
   let kConfig =
         (krankConfig config)
           { useColors = useColors (krankConfig config) && canUseColor
