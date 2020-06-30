@@ -1,6 +1,6 @@
 cabal-version:       2.2
 name:                krank
-version:             0.2.1
+version:             0.2.2
 synopsis: Krank checks your code source comments for important markers
 -- description:
 bug-reports: https://github.com/guibou/krank/issues
@@ -38,6 +38,7 @@ common shared-library
 
 library
   import: shared-library
+  autogen-modules:     Paths_krank
   exposed-modules:     Krank
                        Krank.Checkers.Ignore
                        Krank.Checkers.IssueTracker

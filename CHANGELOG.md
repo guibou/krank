@@ -1,5 +1,10 @@
 # Revision history for krank
 
+## 0.2.2 -- 2020-06-30
+
+* #84 fix build with `unordered-containers` 0.2.11.0
+* #81, new `--version` command line argument
+
 ## 0.2.1 -- 2020-05-02
 
 * #76 fix. ignore space in URL
