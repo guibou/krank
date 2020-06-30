@@ -9,7 +9,7 @@ where
 
 import qualified Data.ByteString.Char8 as ByteString
 import Data.ByteString.Char8 (ByteString)
-import Data.HashMap.Strict as HashM
+import qualified Data.HashMap.Strict as HashM
 import qualified Data.List as DataL
 import Krank.Types
 import PyF (fmt)
