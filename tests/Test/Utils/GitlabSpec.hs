@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE CPP #-}
 
 -- Leaving unnecessary do because
 --  * they improve readability
@@ -62,7 +63,11 @@ spec = do
         showGitlabException exception `shouldBe` showHTTPException showRawResponse exception
 
 dummyResponse :: Status -> Response ()
+#if MIN_VERSION_http_client(0,7,8)
+dummyResponse status = Response status http11 [] () (createCookieJar []) (ResponseClose $ pure ()) (error "WTF")
+#else
 dummyResponse status = Response status http11 [] () (createCookieJar []) (ResponseClose $ pure ())
+#endif
 
 -- | From a raw error message to a JSON formatted gitlab error
 mkGitlabErrorBody :: Text -> ByteString
