@@ -39,6 +39,7 @@ rec {
 
   # default is latest GHC
   krank = krank_810;
+  krank_all = [krank_810 krank_88];
 
   # Run hlint on the codebase
   hlint = runCommand "hlint-krank" {
