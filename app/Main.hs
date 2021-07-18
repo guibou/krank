@@ -1,6 +1,7 @@
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 import Control.Applicative (optional)
 import Control.Monad.Reader
@@ -9,7 +10,7 @@ import qualified Data.Text as Text
 import Krank
 import Krank.Types
 import qualified Options.Applicative as Opt
-import Options.Applicative ((<**>), many, some)
+import Options.Applicative ((<**>), many)
 import PyF (fmt)
 import System.Console.Pretty (supportsPretty)
 import System.Exit (exitFailure)
@@ -17,6 +18,9 @@ import Text.Regex.PCRE.Heavy
 import Version (displayVersion)
 import System.Environment (lookupEnv)
 import Data.Maybe
+import System.Process
+import Control.Exception (catch)
+import GHC.Exception
 
 data KrankOpts
   = KrankOpts
@@ -25,7 +29,7 @@ data KrankOpts
       }
 
 filesToParse :: Opt.Parser [FilePath]
-filesToParse = some (Opt.argument Opt.str (Opt.metavar "FILES..."))
+filesToParse = many (Opt.argument Opt.str (Opt.metavar "FILES..." <> Opt.help "List of file to check. If empty, it will try to use `git ls-files`."))
 
 githubKeyToParse :: Opt.Parser (Maybe GithubKey)
 githubKeyToParse =
@@ -58,7 +62,7 @@ noColorParse =
   not
     <$> Opt.switch
       ( Opt.long "no-colors"
-          <> Opt.help "Disable colored outputs"
+          <> Opt.help "Disable colored outputs. You can also set NO_COLOR environment variable."
       )
 
 versionParse :: Opt.Parser (a -> a)
@@ -103,5 +107,23 @@ main = do
         (krankConfig config)
           { useColors = useColors (krankConfig config) && canUseColor
           }
-  success <- runReaderT (unKrank $ runKrank (codeFilePaths config)) kConfig
+
+  -- If files are not explicitly listed, try `git ls-files` and `find`.
+  files <- case codeFilePaths config of
+                [] -> (lines <$> readProcess "git" ["ls-files"] "") `catch` (\(e :: SomeException) -> noGitFailure e)
+                l -> pure l
+  
+  success <- runReaderT (unKrank $ runKrank files) kConfig
   unless success exitFailure
+
+noGitFailure :: SomeException -> IO [String]
+noGitFailure e = do
+  print e
+  putStrLn "`Git` was not found, trying to list files using `find`"
+  (lines <$> readProcess "find" [""] "") `catch` findFailure
+
+findFailure :: SomeException -> IO [FilePath]
+findFailure e = do
+  print e
+  putStrLn "`find` was not found, please pass file argument manually"
+  pure []

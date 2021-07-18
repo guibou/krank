@@ -12,12 +12,12 @@ themselves.
 
 # Usage
 
-Just launch the `krank` command with a list of files as arguments. It
+Just launch the `krank` command, optionally with a list of files as arguments. It
 works on any kind of source code file and prints a report of
 informations found in the comments:
 
 ```bash
-$ krank $(git ls-files)
+$ krank
 
 default.nix:20:20: info:
   still Open: https://github.com/NixOS/nix/issues/2733
