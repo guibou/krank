@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE CPP #-}
 
 module Test.Utils.GithubSpec
   ( spec,
@@ -55,7 +56,11 @@ spec = do
         showGithubException exception `shouldBe` showHTTPException showRawResponse exception
 
 dummyResponse :: Status -> Response ()
+#if MIN_VERSION_http_client(0,7,8)
+dummyResponse status = Response status http11 [] () (createCookieJar []) (ResponseClose $ pure ()) (error "WTF")
+#else
 dummyResponse status = Response status http11 [] () (createCookieJar []) (ResponseClose $ pure ())
+#endif
 
 -- | From a raw error message to a JSON formatted github error
 mkGithubErrorBody :: Text -> ByteString
