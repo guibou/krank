@@ -1,14 +1,28 @@
 # Krank
 
 ![Hackage](https://img.shields.io/hackage/v/krank)
-![CircleCI](https://img.shields.io/circleci/build/github/guibou/krank)
 
-Krank checks your code source comments for important markers.
+Krank checks your code source comments for link to issue trackers, such as
+gitlab or github.
 
-Comments are part of our code and are not usually tested
-correctly. Hence their content can become incoherent or
-obsolete. Krank tries to avoid that by running checkers on the comments
-themselves.
+Krank will then outputs a report of the status of theses issues, if they are
+closed or still open.
+
+# Why
+
+You are blocked on upstream ticket, there you write a nice comment in your code such as:
+
+```python
+# blocked on upstream ticket https//github.com/Foo/Bar/issues/1234
+# This workaround should be removed once the upstream ticket is closed
+if workaround:
+  pass
+```
+
+And, this stays in your codebase for the next ten years, even if the upstream issue is closed.
+
+Now you can run `krank` on your codebase, and it will tells you that issue
+`#1234` in project `Foo/Bar` has been closed. Time to remove your workaround.
 
 # Usage
 
@@ -36,12 +50,12 @@ You can check `krank --help` for a list of options, such as
 configuring your API token for external services, such as github and
 gitlab.
 
-# Available checkers
+# Specific documentation
 
-- [IssueTracker](docs/Checkers/IssueTracker.md) is listing Github and
-  Gitlab issue linked in comment. Issues which are still Open will be
-  listed as info and Closed *issues* are listed as *error*. Convenient
-  to know when to remove workarounds.
+[IssueTracker](docs/Checkers/IssueTracker.md) is listing Github and Gitlab
+issue linked in comment. Issues which are still Open will be listed as info and
+Closed *issues* are listed as *error*. Convenient to know when to remove
+workarounds.
 
 # Red herring
 

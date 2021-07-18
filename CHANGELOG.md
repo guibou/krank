@@ -1,7 +1,10 @@
 # Revision history for krank
 
+## 0.2.3 -- 2021-07-18
+
 * #88 krank tries to test files listed by `git ls-files` or `find` by default.
 * #89 support `NO_COLOR`. https://no-color.org/.
+* README is rebranded so it is obvious that `krank` checks for issue tracker / PR links.
 
 ## 0.2.2 -- 2020-06-30
 

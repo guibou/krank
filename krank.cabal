@@ -1,7 +1,7 @@
 cabal-version:       2.2
 name:                krank
-version:             0.2.2
-synopsis: Krank checks your code source comments for important markers
+version:             0.2.3
+synopsis: Krank checks issue tracker link status in your source code
 -- description:
 bug-reports: https://github.com/guibou/krank/issues
 license: BSD-3-Clause
@@ -11,7 +11,7 @@ maintainer:          guillaum.bouchard@gmail.com
 homepage:            https://github.com/guibou/krank
 copyright:
 category: quality
-description: Comments are part of our code and are not usually tested correctly. Hence their content can become incoherent or obsolete. Krank tries to avoid that by running checkers on the comment themselves.
+description: Krank checks issue tracker link status in your source code. When you implement a workaround because of an upstream issue, you often put a link in comment in your code. Krank will tell you when the issue associated with your workaround is closed, meaning that you may get ride of your workaround.
 build-type:          Simple
 extra-source-files:  CHANGELOG.md, README.md HACKING.md docs/Checkers/IssueTracker.md
 
