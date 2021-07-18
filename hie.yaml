@@ -1,0 +1,8 @@
+cradle:
+  cabal:
+    - path: "./src"
+      component: "krank:lib:krank"
+    - path: "./app"
+      component: "krank:exe:krank"
+    - path: "./test"
+      component: "krank:test:krank-test"
