@@ -29,18 +29,11 @@ rec {
   # callCabal2nix behaves well with direnv
   krankBuilder = hPkgs: haskell.lib.buildFromSdist (hPkgs.callCabal2nix "krank" sources {});
 
-  krank_86 = krankBuilder haskell.packages.ghc865;
-  krank_88 = krankBuilder haskell.packages.ghc883;
-  krank_810 = krankBuilder (haskell.packages.ghc8101.override {
+  krank_86 = krankBuilder haskell.packages.ghc865Binary;
+  krank_88 = krankBuilder haskell.packages.ghc884;
+  krank_810 = krankBuilder (haskell.packages.ghc8104.override {
     overrides = self: super: with pkgs.haskell.lib; {
-      language-haskell-extract = doJailbreak (super.language-haskell-extract.overrideAttrs(o: {
-        patches = (o.patches or []) ++ [
-          (pkgs.fetchpatch
-            {
-              url = https://gitlab.haskell.org/ghc/head.hackage/-/raw/master/patches/language-haskell-extract-0.2.4.patch;
-              sha256 = "0rgzrq0513nlc1vw7nw4km4bcwn4ivxcgi33jly4a7n3c1r32v1f";
-            })];
-      }));
+      PyF = dontCheck super.PyF;
     };
   });
 
