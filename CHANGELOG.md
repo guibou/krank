@@ -1,5 +1,7 @@
 # Revision history for krank
 
+* #89 support `NO_COLOR`. https://no-color.org/.
+
 ## 0.2.2 -- 2020-06-30
 
 * #84 fix build with `unordered-containers` 0.2.11.0

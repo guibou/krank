@@ -15,6 +15,8 @@ import System.Console.Pretty (supportsPretty)
 import System.Exit (exitFailure)
 import Text.Regex.PCRE.Heavy
 import Version (displayVersion)
+import System.Environment (lookupEnv)
+import Data.Maybe
 
 data KrankOpts
   = KrankOpts
@@ -92,7 +94,10 @@ opts =
 
 main :: IO ()
 main = do
-  canUseColor <- supportsPretty
+  noColor <- isJust <$> lookupEnv "NO_COLOR"
+  colorSupport <- supportsPretty
+
+  let canUseColor = colorSupport && not noColor
   config <- Opt.customExecParser (Opt.prefs Opt.showHelpOnError) opts
   let kConfig =
         (krankConfig config)
