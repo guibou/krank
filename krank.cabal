@@ -18,7 +18,7 @@ extra-source-files:  CHANGELOG.md, README.md HACKING.md docs/Checkers/IssueTrack
 common shared-library
   build-depends:       base >= 4.9
                        , PyF >= 0.8.1.0
-                       , aeson >= 1.4.4
+                       , aeson >= 2
                        , bytestring
                        , containers
                        , http-client >= 0.6

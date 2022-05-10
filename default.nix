@@ -31,7 +31,7 @@ rec {
 
   krank_86 = krankBuilder haskell.packages.ghc865Binary;
   krank_88 = krankBuilder haskell.packages.ghc884;
-  krank_810 = krankBuilder (haskell.packages.ghc8104.override {
+  krank_810 = krankBuilder (haskell.packages.ghc8107.override {
     overrides = self: super: with pkgs.haskell.lib; {
       PyF = dontCheck super.PyF;
     };
