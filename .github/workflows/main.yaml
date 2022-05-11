@@ -32,6 +32,4 @@ jobs:
 
     # Build stack
     - name: Stack 8.10
-      run: stack --resolver lts-17.1 test
-    - name: Stack 8.8
-      run: stack --resolver lts-16.31 test
+      run: stack --resolver lts-19.6 test
