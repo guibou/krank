@@ -16,7 +16,7 @@ where
 
 import Data.Aeson (Value (..), encode)
 import Data.ByteString.Lazy (ByteString, toStrict)
-import Data.HashMap.Strict (singleton)
+import Data.Aeson.KeyMap (singleton)
 import Data.Text (Text, isInfixOf, isPrefixOf)
 import Network.HTTP.Client (HttpException (..), HttpExceptionContent (..), createCookieJar, defaultRequest)
 import Network.HTTP.Client.Internal (Response (..), ResponseClose (..))
