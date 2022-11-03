@@ -7,8 +7,8 @@ module Krank.Checkers.Ignore
   )
 where
 
-import qualified Data.ByteString.Char8 as ByteString
 import Data.ByteString.Char8 (ByteString)
+import qualified Data.ByteString.Char8 as ByteString
 import qualified Data.HashMap.Strict as HashM
 import qualified Data.List as DataL
 import Krank.Types

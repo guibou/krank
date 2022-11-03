@@ -12,7 +12,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - uses: cachix/install-nix-action@v12
+    - uses: cachix/install-nix-action@v18
     - uses: cachix/cachix-action@v10
       with:
         name: guibou
@@ -20,4 +20,4 @@ jobs:
 
     # Builds
     - name: Build current GHC
-      run: nix-build -A krank
+      run: nix build
