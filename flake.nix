@@ -10,7 +10,28 @@
 
       in
       rec {
-        krankBuilder = hPkgs: pkgs.haskell.lib.buildFromSdist (hPkgs.callCabal2nix "krank" ./. {});
+        krankBuilder = hPkgs:
+          let
+            shell = pkg.env.overrideAttrs (old: {
+              nativeBuildInputs = old.nativeBuildInputs
+                ++ [ pkgs.cabal-install ];
+            });
+
+            # Shell with haskell language server
+            shell_hls = shell.overrideAttrs (old: {
+              nativeBuildInputs = old.nativeBuildInputs
+                ++ [ hPkgs.haskell-language-server ];
+            });
+
+            pkg = (pkgs.haskell.lib.buildFromSdist
+              (hPkgs.callCabal2nix "krank" ./. { })).overrideAttrs
+              (oldAttrs: {
+                buildInputs = oldAttrs.buildInputs;
+                passthru = oldAttrs.passthru // { inherit shell shell_hls; };
+              });
+            # Add the GHC version in the package name
+          in pkg.overrideAttrs (old: { name = "krank-ghc${hPkgs.ghc.version}"; });
+
         defaultPackage = packages.krank;
 
         packages = {
@@ -20,6 +41,12 @@
            krank_92 = krankBuilder pkgs.haskell.packages.ghc92;
            krank_94 = krankBuilder pkgs.haskell.packages.ghc94;
            #krank_810 = krankBuilder pkgs.haskell.packages.ghc810;
+        };
+
+        devShell = packages.krank.shell_hls;
+        devShells = {
+          shell = packages.krank.shell;
+          shell_hls = packages.krank.shell_hls;
         };
 
         all = pkgs.linkFarmFromDrvs "all" (builtins.attrValues packages);
