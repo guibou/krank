@@ -79,16 +79,16 @@ instance MonadKrank Krank where
   krankMapConcurrently f l = Krank $ mapConcurrently (coerce . f) l
 
   -- This implements a Req REST request
-  krankRunRESTRequest url headers = Krank
-    $ Req.runReq Req.defaultHttpConfig
-    $ do
-      r <-
-        Req.req
-          Req.GET
-          url
-          Req.NoReqBody
-          Req.jsonResponse
-          ( Req.header "User-Agent" "krank"
-              <> headers
-          )
-      pure $ Req.responseBody r
+  krankRunRESTRequest url headers = Krank $
+    Req.runReq Req.defaultHttpConfig $
+      do
+        r <-
+          Req.req
+            Req.GET
+            url
+            Req.NoReqBody
+            Req.jsonResponse
+            ( Req.header "User-Agent" "krank"
+                <> headers
+            )
+        pure $ Req.responseBody r

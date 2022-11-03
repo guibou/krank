@@ -1,32 +1,31 @@
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE ViewPatterns #-}
-{-# LANGUAGE ScopedTypeVariables #-}
 
 import Control.Applicative (optional)
+import Control.Exception (catch)
 import Control.Monad.Reader
 import qualified Data.Map as Map
+import Data.Maybe
 import qualified Data.Text as Text
+import GHC.Exception
 import Krank
 import Krank.Types
+import Options.Applicative (many, (<**>))
 import qualified Options.Applicative as Opt
-import Options.Applicative ((<**>), many)
 import PyF (fmt)
 import System.Console.Pretty (supportsPretty)
+import System.Environment (lookupEnv)
 import System.Exit (exitFailure)
+import System.Process
 import Text.Regex.PCRE.Heavy
 import Version (displayVersion)
-import System.Environment (lookupEnv)
-import Data.Maybe
-import System.Process
-import Control.Exception (catch)
-import GHC.Exception
 
-data KrankOpts
-  = KrankOpts
-      { codeFilePaths :: [FilePath],
-        krankConfig :: KrankConfig
-      }
+data KrankOpts = KrankOpts
+  { codeFilePaths :: [FilePath],
+    krankConfig :: KrankConfig
+  }
 
 filesToParse :: Opt.Parser [FilePath]
 filesToParse = many (Opt.argument Opt.str (Opt.metavar "FILES..." <> Opt.help "List of file to check. If empty, it will try to use `git ls-files`."))
@@ -110,9 +109,9 @@ main = do
 
   -- If files are not explicitly listed, try `git ls-files` and `find`.
   files <- case codeFilePaths config of
-                [] -> (lines <$> readProcess "git" ["ls-files"] "") `catch` (\(e :: SomeException) -> noGitFailure e)
-                l -> pure l
-  
+    [] -> (lines <$> readProcess "git" ["ls-files"] "") `catch` (\(e :: SomeException) -> noGitFailure e)
+    l -> pure l
+
   success <- runReaderT (unKrank $ runKrank files) kConfig
   unless success exitFailure
 

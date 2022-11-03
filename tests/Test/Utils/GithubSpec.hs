@@ -1,6 +1,6 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE CPP #-}
 
 module Test.Utils.GithubSpec
   ( spec,
@@ -8,8 +8,8 @@ module Test.Utils.GithubSpec
 where
 
 import Data.Aeson (Value (..), encode)
-import Data.ByteString.Lazy (ByteString, toStrict)
 import Data.Aeson.KeyMap (singleton)
+import Data.ByteString.Lazy (ByteString, toStrict)
 import Data.Text (Text, isInfixOf, isPrefixOf)
 import Network.HTTP.Client (HttpException (..), HttpExceptionContent (..), createCookieJar, defaultRequest)
 import Network.HTTP.Client.Internal (Response (..), ResponseClose (..))

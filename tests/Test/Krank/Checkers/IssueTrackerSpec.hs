@@ -25,16 +25,14 @@ import qualified Network.HTTP.Req as Req
 import PyF (fmt)
 import Test.Hspec
 
-data TestEnv
-  = TestEnv
-      { envFiles :: Map FilePath Data.ByteString.ByteString,
-        envRestAnswers :: Map (Req.Url 'Req.Https) (Either Req.HttpException Value)
-      }
+data TestEnv = TestEnv
+  { envFiles :: Map FilePath Data.ByteString.ByteString,
+    envRestAnswers :: Map (Req.Url 'Req.Https) (Either Req.HttpException Value)
+  }
 
-newtype TestKrank t
-  = TestKrank
-      { unTestKrank :: WriterT ([Text], [Text]) (ReaderT (TestEnv, KrankConfig) (Either SomeException)) t
-      }
+newtype TestKrank t = TestKrank
+  { unTestKrank :: WriterT ([Text], [Text]) (ReaderT (TestEnv, KrankConfig) (Either SomeException)) t
+  }
   deriving newtype (Monad, Applicative, Functor, MonadThrow, MonadCatch)
 
 -- | "pure" instance of 'MonadKrank'
@@ -114,24 +112,24 @@ spec = do
       giturlTests Github
     describe "#githlabParser" $
       giturlTests (Gitlab (GitlabHost "gitlab.com"))
-    describe "#extractIssues"
-      $ it "handles both github and gitlab"
-      $ do
-        let match =
-              extractIssues
-                "localFile"
-                [fmt|https://github.com/guibou/krank/issues/2
+    describe "#extractIssues" $
+      it "handles both github and gitlab" $
+        do
+          let match =
+                extractIssues
+                  "localFile"
+                  [fmt|https://github.com/guibou/krank/issues/2
         some text
         https://gitlab.com/gitlab-org/gitlab-foss/issues/67390
         and more github https://github.com/guibou/krank/issues/1
         lalala https://gitlab.haskell.org/ghc/ghc/issues/16955
         |]
-        match
-          `shouldMatchList` [ Localized (SourcePos "localFile" 1 1) $ GitIssueRef Github "guibou" "krank" 2,
-                              Localized (SourcePos "localFile" 3 9) $ GitIssueRef (Gitlab (GitlabHost "gitlab.com")) "gitlab-org" "gitlab-foss" 67390,
-                              Localized (SourcePos "localFile" 4 25) $ GitIssueRef Github "guibou" "krank" 1,
-                              Localized (SourcePos "localFile" 5 16) $ GitIssueRef (Gitlab (GitlabHost "gitlab.haskell.org")) "ghc" "ghc" 16955
-                            ]
+          match
+            `shouldMatchList` [ Localized (SourcePos "localFile" 1 1) $ GitIssueRef Github "guibou" "krank" 2,
+                                Localized (SourcePos "localFile" 3 9) $ GitIssueRef (Gitlab (GitlabHost "gitlab.com")) "gitlab-org" "gitlab-foss" 67390,
+                                Localized (SourcePos "localFile" 4 25) $ GitIssueRef Github "guibou" "krank" 1,
+                                Localized (SourcePos "localFile" 5 16) $ GitIssueRef (Gitlab (GitlabHost "gitlab.haskell.org")) "ghc" "ghc" 16955
+                              ]
   describe "huge test" $ do
     let config =
           KrankConfig

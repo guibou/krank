@@ -20,10 +20,10 @@ module Krank.Checkers.IssueTracker
 where
 
 import Control.Exception.Safe (catch)
-import Data.Aeson ((.:), Value)
+import Data.Aeson (Value, (.:))
 import qualified Data.Aeson.Types as AesonT
-import qualified Data.ByteString.Char8 as ByteString
 import Data.ByteString.Char8 (ByteString)
+import qualified Data.ByteString.Char8 as ByteString
 import qualified Data.Map as Map
 import Data.Text (Text, pack)
 import qualified Data.Text.Encoding as Text.Encoding
@@ -39,21 +39,19 @@ data GitServer = Github | Gitlab GitlabHost
 
 data IssueStatus = Open | Closed deriving (Eq, Show)
 
-data GitIssueRef
-  = GitIssueRef
-      { server :: GitServer,
-        owner :: Text,
-        repo :: Text,
-        issueNum :: Int
-      }
+data GitIssueRef = GitIssueRef
+  { server :: GitServer,
+    owner :: Text,
+    repo :: Text,
+    issueNum :: Int
+  }
   deriving (Eq, Show)
 
-data GitIssueData
-  = GitIssueData
-      { gitIssue :: Localized GitIssueRef,
-        issueStatus :: IssueStatus,
-        issueTitle :: Text
-      }
+data GitIssueData = GitIssueData
+  { gitIssue :: Localized GitIssueRef,
+    issueStatus :: IssueStatus,
+    issueTitle :: Text
+  }
   deriving (Eq, Show)
 
 serverDomain ::

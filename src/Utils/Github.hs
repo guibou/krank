@@ -29,10 +29,9 @@ import Utils.Req (showHTTPException, showRawResponse)
 --    "message": "the error reason"
 -- }
 -- @
-newtype GithubError
-  = GithubError
-      { message :: Text
-      }
+newtype GithubError = GithubError
+  { message :: Text
+  }
   deriving stock (Generic, Show)
   deriving anyclass (FromJSON, ToJSON)
 
