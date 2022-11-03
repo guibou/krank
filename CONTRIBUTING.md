@@ -12,34 +12,24 @@ When designing a rule, we want to follow some guidelines:
 
 ## Build
 
-Krank can be build with stack, or cabal. The preferred developer workflow is based on nix and optionally direnv.
+Krank can be build with stack, or cabal. The preferred developer workflow is based on nix.
 
 ```shell
-$ nix-build . -A something
+$ nix build
 ```
 
-Will build `something`. See auto completion for the different options.
+Will build the krank package.
 
 ```
-$ nix-shell
+$ nix develop
 ```
 
-Will open a nix shell where `cabal` is available to work on the project using the latest GHC.
+Will open a nix shell where `cabal` and haskell language server are available
+for work. You may want to use `nix develop .#shell` if you don't want to
+download HLS.
 
 ```
-$ nix-build . -A hlint
-```
-
-Will run `hlint` (this is part of CI).
-
-```
-$ nix-build . -A ormolu
-```
-
-Will run `ormolu` to check your codebase formatting (this is part of CI).
-
-```
-$ nix-shell . -A ormolu-fix
+$ nix run .#ormolu
 ```
 
 Will run `ormolu` on the codebase to fix formatting.

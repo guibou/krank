@@ -1,6 +1,6 @@
 cabal-version:       2.2
 name:                krank
-version:             0.2.3
+version:             0.3.0
 synopsis: Krank checks issue tracker link status in your source code
 -- description:
 bug-reports: https://github.com/guibou/krank/issues
