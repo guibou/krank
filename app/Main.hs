@@ -21,6 +21,7 @@ import System.Exit (exitFailure)
 import System.Process
 import Text.Regex.PCRE.Heavy
 import Version (displayVersion)
+import Control.Monad (unless)
 
 data KrankOpts = KrankOpts
   { codeFilePaths :: [FilePath],

@@ -25,6 +25,7 @@ import Krank.Types
 import qualified Network.HTTP.Req as Req
 import PyF
 import System.IO (stderr)
+import Control.Monad (forM_)
 
 processFile ::
   MonadKrank m =>
