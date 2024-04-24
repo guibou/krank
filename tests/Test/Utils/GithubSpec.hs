@@ -56,7 +56,9 @@ spec = do
         showGithubException exception `shouldBe` showHTTPException showRawResponse exception
 
 dummyResponse :: Status -> Response ()
-#if MIN_VERSION_http_client(0,7,8)
+#if MIN_VERSION_http_client(0,7,16)
+dummyResponse status = Response status http11 [] () (createCookieJar []) (ResponseClose $ pure ()) (error "WTF") []
+#elif MIN_VERSION_http_client(0,7,8)
 dummyResponse status = Response status http11 [] () (createCookieJar []) (ResponseClose $ pure ()) (error "WTF")
 #else
 dummyResponse status = Response status http11 [] () (createCookieJar []) (ResponseClose $ pure ())
