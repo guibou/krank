@@ -104,13 +104,16 @@ giturlTests domain = do
   it "handles long gitlab url with groups and with the odd /-" $ do
     let match = check [fmt|{domainName}/gbataille_main/sub_level_1/sub_level_2/deep_in_groups/-/issues/12|]
     match `shouldBe` Just (GitIssueRef domain "gbataille_main/sub_level_1/sub_level_2" "deep_in_groups" 12)
+  it "handle an url embeded in markdown" $ do
+    let match = check [fmt|lalalalalalaalla [Issue XX](https://{domainName}/foo/bar/issues/123) blo blo blu|]
+    match `shouldBe` Just (GitIssueRef domain "foo" "bar" 123)
 
 spec :: Spec
 spec = do
   context "Test.Krank.Checkers.specIssueTracker" $ do
     describe "#githubParser" $
       giturlTests Github
-    describe "#githlabParser" $
+    describe "#gitlabParser" $
       giturlTests (Gitlab (GitlabHost "gitlab.com"))
     describe "#extractIssues" $
       it "handles both github and gitlab" $
