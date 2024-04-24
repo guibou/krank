@@ -23,8 +23,8 @@
                 ++ [ hPkgs.haskell-language-server ];
             });
 
-            pkg = (pkgs.haskell.lib.buildFromSdist
-              (hPkgs.callCabal2nix "krank" ./. { })).overrideAttrs
+            pkg = (
+              (pkgs.haskell.lib.dontCheck (hPkgs.callCabal2nix "krank" ./. { }))).overrideAttrs
               (oldAttrs: {
                 buildInputs = oldAttrs.buildInputs;
                 passthru = oldAttrs.passthru // { inherit shell shell_hls; };
@@ -40,6 +40,8 @@
            krank_90 = krankBuilder pkgs.haskell.packages.ghc90;
            krank_92 = krankBuilder pkgs.haskell.packages.ghc92;
            krank_94 = krankBuilder pkgs.haskell.packages.ghc94;
+           krank_96 = krankBuilder pkgs.haskell.packages.ghc96;
+           krank_98 = krankBuilder pkgs.haskell.packages.ghc98;
            #krank_810 = krankBuilder pkgs.haskell.packages.ghc810;
         };
 

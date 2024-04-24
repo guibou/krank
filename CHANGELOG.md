@@ -1,5 +1,8 @@
 # Revision history for krank
 
+* Fix build with http-client >= 0.7.16
+* Fix url parsing in markdown
+
 ## 0.2.3 -- 2021-07-18
 
 * #88 krank tries to test files listed by `git ls-files` or `find` by default.
