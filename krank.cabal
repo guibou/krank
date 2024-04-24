@@ -72,6 +72,7 @@ test-suite krank-test
                        Utils.Req
   build-depends: hspec >= 2.7
                , hspec-expectations
+               , hspec-discover
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
 
 executable krank
