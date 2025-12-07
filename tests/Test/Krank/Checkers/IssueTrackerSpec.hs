@@ -17,7 +17,7 @@ import Data.ByteString (ByteString)
 import Data.Coerce
 import Data.Map (Map)
 import qualified Data.Map as Map
-import Data.Text
+import Data.Text (Text)
 import Krank
 import Krank.Checkers.IssueTracker
 import Krank.Types
