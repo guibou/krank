@@ -1,5 +1,8 @@
 # Revision history for krank
 
+## 0.3.1 -- 2025-12-07
+
+* Support for GHC up to 9.12
 * Fix build with http-client >= 0.7.16
 * Fix url parsing in markdown
 
