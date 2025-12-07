@@ -7,17 +7,20 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
+  nix-matrix:
+    strategy:
+      matrix:
+        ghc: [94, 96, 98, 910, 912]
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
-    - uses: cachix/install-nix-action@v18
-    - uses: cachix/cachix-action@v10
-      with:
-        name: guibou
-        authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+      - uses: actions/checkout@v2
+      - uses: cachix/install-nix-action@v31
+      - uses: cachix/cachix-action@v15
+        with:
+          name: guibou
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
 
-    # Builds
-    - name: Build current GHC
-      run: nix build
+      # Builds
+      - name: Build with GHC ${{ matrix.ghc }}
+        run: nix build .#krank_${{ matrix.ghc }}

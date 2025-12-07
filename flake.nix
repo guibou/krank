@@ -6,10 +6,8 @@
 
   outputs = { self, nixpkgs, flake-utils }:
     flake-utils.lib.eachDefaultSystem (system:
-      let pkgs = nixpkgs.legacyPackages.${system};
-
-      in
-      rec {
+      let
+        pkgs = nixpkgs.legacyPackages.${system};
         krankBuilder = hPkgs:
           let
             shell = pkg.env.overrideAttrs (old: {
@@ -24,42 +22,30 @@
             });
 
             pkg = (
-              (pkgs.haskell.lib.dontCheck (hPkgs.callCabal2nix "krank" ./. { }))).overrideAttrs
+              (pkgs.haskell.lib.dontCheck (hPkgs.callCabal2nix "krank" ./. { }))
+            ).overrideAttrs
               (oldAttrs: {
                 buildInputs = oldAttrs.buildInputs;
                 passthru = oldAttrs.passthru // { inherit shell shell_hls; };
               });
             # Add the GHC version in the package name
-          in pkg.overrideAttrs (old: { name = "krank-ghc${hPkgs.ghc.version}"; });
-
-        defaultPackage = packages.krank;
-
+          in
+          pkg.overrideAttrs (old: { name = "krank-ghc${hPkgs.ghc.version}"; });
+      in
+      rec {
         packages = {
-           krank = krankBuilder pkgs.haskellPackages;
-           #krank_88 = krankBuilder pkgs.haskell.packages.ghc88;
-           krank_90 = krankBuilder pkgs.haskell.packages.ghc90;
-           krank_92 = krankBuilder pkgs.haskell.packages.ghc92;
-           krank_94 = krankBuilder pkgs.haskell.packages.ghc94;
-           krank_96 = krankBuilder pkgs.haskell.packages.ghc96;
-           krank_98 = krankBuilder pkgs.haskell.packages.ghc98;
-           #krank_810 = krankBuilder pkgs.haskell.packages.ghc810;
+          default = krankBuilder pkgs.haskellPackages;
+          krank_94 = krankBuilder pkgs.haskell.packages.ghc94;
+          krank_96 = krankBuilder pkgs.haskell.packages.ghc96;
+          krank_98 = krankBuilder pkgs.haskell.packages.ghc98;
+          krank_910 = krankBuilder pkgs.haskell.packages.ghc910;
+          krank_912 = krankBuilder pkgs.haskell.packages.ghc912;
         };
 
-        devShell = packages.krank.shell_hls;
-        devShells = {
-          shell = packages.krank.shell;
-          shell_hls = packages.krank.shell_hls;
-        };
-
-        all = pkgs.linkFarmFromDrvs "all" (builtins.attrValues packages);
-
-        apps = {
-          ormolu = {
-            type = "app";
-            program = "${pkgs.writeScript "ormolu" ''
-              ${pkgs.ormolu}/bin/ormolu --mode inplace $(git ls-files | grep '\.hs$')
-            ''}";
-          };
+        devShells = rec {
+          shell = packages.default.shell;
+          shell_hls = packages.default.shell_hls;
+          default = shell_hls;
         };
       });
 }
