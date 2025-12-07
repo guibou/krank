@@ -16,7 +16,7 @@ build-type:          Simple
 extra-source-files:  CHANGELOG.md, README.md HACKING.md docs/Checkers/IssueTracker.md
 
 common shared-library
-  build-depends:       base >= 4.9
+  build-depends:       base >= 4.9 && <= 4.23.0.0
                        , PyF >= 0.8.1.0
                        , aeson >= 2
                        , bytestring
