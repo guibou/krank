@@ -2,6 +2,7 @@
 
 module Krank.Types
   ( GithubKey (..),
+    CodebergKey(..),
     GitlabHost (..),
     GitlabKey (..),
     Violation (..),
@@ -21,6 +22,8 @@ import Data.Text (Text)
 import qualified Network.HTTP.Req as Req
 
 newtype GithubKey = GithubKey Text deriving (Show)
+
+newtype CodebergKey = CodebergKey Text deriving (Show)
 
 newtype GitlabKey = GitlabKey Text deriving (Show)
 
@@ -61,6 +64,8 @@ data KrankConfig = KrankConfig
     githubKey :: Maybe GithubKey,
     -- | The gitlab oAuth token
     gitlabKeys :: Map GitlabHost GitlabKey,
+    -- | The codeberg host token
+    codebergKey :: Maybe CodebergKey,
     -- | If 'True', all IO operations, such as HTTP requests, are ignored
     dryRun :: Bool,
     -- | Use color for formatting

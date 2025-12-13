@@ -34,7 +34,7 @@ import qualified Text.Regex.PCRE.Heavy as RE
 import Utils.Github (showGithubException)
 import Utils.Gitlab (showGitlabException)
 
-data GitServer = Github | Gitlab GitlabHost
+data GitServer = Github | Gitlab GitlabHost | Codeberg
   deriving (Eq, Show)
 
 data IssueStatus = Open | Closed deriving (Eq, Show)
@@ -58,6 +58,7 @@ serverDomain ::
   GitServer ->
   Text
 serverDomain Github = "github.com"
+serverDomain Codeberg = "codeberg.org"
 serverDomain (Gitlab (GitlabHost h)) = h
 
 -- | This regex represents a github/gitlab issue URL
@@ -75,6 +76,7 @@ extractIssuesOnALine lineContent = map f (RE.scan gitRepoRe lineContent)
         colNo = 1 + ByteString.length (fst $ ByteString.breakSubstring match lineContent)
         provider
           | domain == "github.com" = Github
+          | domain == "codeberg.org" = Codeberg
           -- TODO: We suppose that all other cases are gitlab
           -- The only thing we risk here is a query with the wrong
           -- API to an irrelevant host.
@@ -109,6 +111,7 @@ issueUrl ::
   Req.Url 'Req.Https
 issueUrl issue = case server issue of
   Github -> Req.https "api.github.com" Req./: "repos" Req./: owner issue Req./: repo issue Req./: "issues" Req./~ issueNum issue
+  Codeberg -> Req.https "codeberg.org" Req./: "api" Req./: "v1" Req./: "repos" Req./: owner issue Req./: repo issue Req./: "issues" Req./~ issueNum issue
   Gitlab (GitlabHost host) -> Req.https host Req./: "api" Req./: "v4" Req./: "projects" Req./: [fmt|{owner issue}/{repo issue}|] Req./: "issues" Req./~ issueNum issue
 
 -- try Issue can fail, on non-2xx HTTP response
@@ -129,9 +132,13 @@ headersFor ::
 headersFor issue = do
   mGithubKey <- krankAsks githubKey
   mGitlabKeys <- krankAsks gitlabKeys
+  mCodebergKey <- krankAsks codebergKey
   case server issue of
     Github -> case mGithubKey of
       Just (GithubKey token) -> pure $ Req.oAuth2Token (Text.Encoding.encodeUtf8 token)
+      Nothing -> pure mempty
+    Codeberg -> case mCodebergKey of
+      Just (CodebergKey token) -> pure $ Req.oAuth2Token (Text.Encoding.encodeUtf8 token)
       Nothing -> pure mempty
     Gitlab host -> case Map.lookup host mGitlabKeys of
       Just (GitlabKey token) -> pure $ Req.header "PRIVATE-TOKEN" (Text.Encoding.encodeUtf8 token)
@@ -150,6 +157,7 @@ showGitServerException ::
   Req.HttpException ->
   Text
 showGitServerException Github exc = showGithubException exc
+showGitServerException Codeberg exc = showGithubException exc
 showGitServerException (Gitlab _) exc = showGitlabException exc
 
 restIssue ::
