@@ -42,6 +42,17 @@ githubKeyToParse =
           )
     )
 
+codebergKeyToParse :: Opt.Parser (Maybe CodebergKey)
+codebergKeyToParse =
+  optional
+    ( CodebergKey
+        <$> Opt.strOption
+          ( Opt.long "issuetracker-codebergkey"
+              <> Opt.metavar "PERSONAL_CODEBERG_KEY"
+              <> Opt.help "A codeberg developer key to allow for more API calls or access to private codeberg repo for the IssueTracker checker"
+          )
+    )
+
 parseGitlabKey :: Opt.ReadM (GitlabHost, GitlabKey)
 parseGitlabKey = Opt.eitherReader $ \(Text.pack -> s) -> case scan [re|^([^=]+)=(.+)$|] s of
   [(_, [x, y])] -> Right (GitlabHost x, GitlabKey y)
@@ -80,6 +91,7 @@ optionsParser =
     <*> ( KrankConfig
             <$> githubKeyToParse
             <*> gitlabKeyToParse
+            <*> codebergKeyToParse
             <*> Opt.switch
               ( Opt.long "dry-run"
                   <> Opt.help "Perform a dry run. Parse file, but do not execute HTTP requests"
